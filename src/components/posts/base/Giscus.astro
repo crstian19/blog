@@ -1,0 +1,74 @@
+---
+import { COMMENT_CONFIG } from '~/config'
+import { getLocale } from '~/i18n'
+
+interface Props {
+  /** Discussion key: the post's translationKey, shared by its translations. */
+  term: string
+}
+
+const { term } = Astro.props
+const giscus = COMMENT_CONFIG.giscus!
+const lang = getLocale(Astro.url)
+---
+
+<div
+  class="giscus"
+  data-giscus-container
+  data-repo={giscus.repo}
+  data-repo-id={giscus.repoId}
+  data-category={giscus.category}
+  data-category-id={giscus.categoryId}
+  data-term={term}
+  data-lang={lang}
+  data-theme-light={giscus.themes.light}
+  data-theme-dark={giscus.themes.dark}
+></div>
+
+<script>
+  const GISCUS_ORIGIN = 'https://giscus.app'
+
+  function currentTheme(container: HTMLElement) {
+    const dark = document.documentElement.classList.contains('dark')
+    return (dark ? container.dataset.themeDark : container.dataset.themeLight) ?? 'preferred_color_scheme'
+  }
+
+  // giscus is a third-party script, so it is added per page (the client router
+  // swaps the post body) with the post's settings read from data attributes.
+  function mount() {
+    const container = document.querySelector<HTMLElement>('[data-giscus-container]')
+    if (!container || container.querySelector('script, iframe')) return
+    const d = container.dataset
+    const script = document.createElement('script')
+    script.src = `${GISCUS_ORIGIN}/client.js`
+    script.async = true
+    script.crossOrigin = 'anonymous'
+    Object.entries({
+      'data-repo': d.repo,
+      'data-repo-id': d.repoId,
+      'data-category': d.category,
+      'data-category-id': d.categoryId,
+      'data-mapping': 'specific',
+      'data-term': d.term,
+      'data-strict': '1',
+      'data-reactions-enabled': '1',
+      'data-emit-metadata': '0',
+      'data-input-position': 'top',
+      'data-theme': currentTheme(container),
+      'data-lang': d.lang,
+      'data-loading': 'lazy',
+    }).forEach(([name, value]) => value && script.setAttribute(name, value))
+    container.appendChild(script)
+  }
+
+  // Follow the site's light/dark toggle without reloading the comments.
+  new MutationObserver(() => {
+    const container = document.querySelector<HTMLElement>('[data-giscus-container]')
+    const frame = document.querySelector<HTMLIFrameElement>('iframe.giscus-frame')
+    if (!container || !frame?.contentWindow) return
+    frame.contentWindow.postMessage({ giscus: { setConfig: { theme: currentTheme(container) } } }, GISCUS_ORIGIN)
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] })
+
+  document.addEventListener('astro:page-load', mount)
+  mount()
+</script>

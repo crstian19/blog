@@ -233,8 +233,18 @@ export interface AnalyticsConfig {
   }
 }
 
+export interface GiscusConfig {
+  repo: `${string}/${string}`
+  repoId: string
+  category: string
+  categoryId: string
+  /** Giscus theme names or CSS URLs, switched with the site theme. */
+  themes: { light: string; dark: string }
+}
+
 export interface CommentConfig {
   enabled: boolean
-  system: 'gitalk' | 'artalk' | 'waline' | 'none'
+  system: 'giscus' | 'gitalk' | 'none'
+  giscus?: GiscusConfig
   gitalk?: GitalkConfig
 }

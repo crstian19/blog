@@ -136,10 +136,18 @@ export const POSTS_CONFIG: PostConfig = {
   wordCountView: true,
 }
 
-// Gitalk needs a GitHub OAuth app; disabled until one exists.
+// Comments are GitHub Discussions of the blog repo, through giscus (https://giscus.app).
+// Both translations of a post share one discussion, keyed by its translationKey.
 export const COMMENT_CONFIG: CommentConfig = {
-  enabled: false,
-  system: 'none',
+  enabled: true,
+  system: 'giscus',
+  giscus: {
+    repo: 'crstian19/My-blog',
+    repoId: 'MDEwOlJlcG9zaXRvcnkyNjk3ODcwNjI=',
+    category: 'Announcements',
+    categoryId: 'DIC_kwDOEBSfts4DHgvf',
+    themes: { light: 'light', dark: 'transparent_dark' },
+  },
 }
 
 export const ANALYTICS_CONFIG: AnalyticsConfig = {

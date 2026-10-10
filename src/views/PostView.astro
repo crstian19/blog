@@ -13,6 +13,7 @@ import Comment from '~/components/posts/base/Comment.astro'
 import License from '~/components/posts/base/License.astro'
 import { COMMENT_CONFIG, POSTS_CONFIG, SITE } from '~/config'
 import type { Locale } from '~/i18n'
+import { getTranslationKey } from '~/lib/data'
 
 type Post = CollectionEntry<'posts'>
 
@@ -68,7 +69,7 @@ const PostLayout = layoutMap[layoutKey]
       <>
         <SectionDivider />
         <div class="px-6 py-6 sm:px-8 pb-6 sm:pb-8">
-          <Comment id={post.id} title={frontmatter.title} />
+          <Comment id={post.id} title={frontmatter.title} term={getTranslationKey(post)} />
         </div>
       </>
     )}
