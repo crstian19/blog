@@ -28,20 +28,40 @@ const eyes = [
   <Image src={base} {width} {height} alt={SITE.author} class="size-full" densities={[1, 2, 3]} loading="eager" />
   <svg viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} class="absolute inset-0 size-full overflow-visible" aria-hidden="true">
     {eyes.map((eye) => (
-      <g data-avatar-eye class="transition-transform duration-150 ease-out">
-        <rect
-          x={eye.cx - eye.width / 2}
-          y={eye.cy - eye.length / 2}
-          width={eye.width}
-          height={eye.length}
-          rx={eye.width / 2}
-          fill={EYE_COLOR}
-          transform={`rotate(${eye.rotate} ${eye.cx} ${eye.cy})`}
-        />
+      <g data-avatar-eye>
+        <g transform={`rotate(${eye.rotate} ${eye.cx} ${eye.cy})`}>
+          <rect
+            data-avatar-blink
+            class="avatar-blink"
+            x={eye.cx - eye.width / 2}
+            y={eye.cy - eye.length / 2}
+            width={eye.width}
+            height={eye.length}
+            rx={eye.width / 2}
+            fill={EYE_COLOR}
+          />
+        </g>
       </g>
     ))}
   </svg>
 </span>
+
+<style>
+  /* Blinks squash each eye along its own length, so the slanted pill closes into a slit. */
+  .avatar-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .avatar-blink.blinking {
+    animation: avatar-blink 170ms ease-in-out;
+  }
+  @keyframes avatar-blink {
+    45%,
+    55% {
+      scale: 1 0.08;
+    }
+  }
+</style>
 
 <script>
   // The eyes look at the pointer: each one shifts towards it by up to MAX_SHIFT
@@ -49,36 +69,89 @@ const eyes = [
   // shift once the pointer is FULL_AT screen pixels away.
   const MAX_SHIFT = 28
   const FULL_AT = 240
+  // How fast the eyes catch up with the target, in ms (smaller is snappier).
+  const SMOOTHING_MS = 55
 
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const offsets = new WeakMap<SVGGElement, { x: number; y: number }>()
   let pointer: { x: number; y: number } | null = null
   let frame = 0
+  let last = 0
 
-  function update() {
-    frame = 0
-    if (!pointer) return
+  // Runs every display frame (60, 120, 144 Hz…) while the eyes are moving, and
+  // stops once they settle. Frame-rate independent: the easing uses elapsed time.
+  function tick(now: number) {
+    const dt = last ? Math.min(now - last, 100) : 16
+    last = now
+    const ease = 1 - Math.exp(-dt / SMOOTHING_MS)
+    let moving = false
+
     for (const eye of document.querySelectorAll<SVGGElement>('[data-avatar-eye]')) {
+      const current = offsets.get(eye) ?? { x: 0, y: 0 }
+      // Measure the eye at rest, so its own offset does not feed back into the target.
       const rect = eye.getBoundingClientRect()
-      const dx = pointer.x - (rect.left + rect.width / 2)
-      const dy = pointer.y - (rect.top + rect.height / 2)
+      const scale = rect.width / (eye.getBBox().width || 1)
+      const cx = rect.left + rect.width / 2 - current.x * scale
+      const cy = rect.top + rect.height / 2 - current.y * scale
+      const dx = pointer!.x - cx
+      const dy = pointer!.y - cy
       const distance = Math.hypot(dx, dy) || 1
       const reach = Math.min(distance / FULL_AT, 1) * MAX_SHIFT
+      const target = { x: (dx / distance) * reach, y: (dy / distance) * reach }
+
+      current.x += (target.x - current.x) * ease
+      current.y += (target.y - current.y) * ease
+      offsets.set(eye, current)
       // Inside the SVG, px in a CSS transform are user units of the viewBox.
-      eye.style.transform = `translate(${(dx / distance) * reach}px, ${(dy / distance) * reach}px)`
+      eye.style.transform = `translate(${current.x}px, ${current.y}px)`
+      if (Math.abs(target.x - current.x) > 0.05 || Math.abs(target.y - current.y) > 0.05) moving = true
+    }
+
+    frame = moving ? requestAnimationFrame(tick) : 0
+    if (!moving) last = 0
+  }
+
+  function wake() {
+    if (pointer && !frame) frame = requestAnimationFrame(tick)
+  }
+
+  function blink() {
+    for (const eye of document.querySelectorAll<SVGRectElement>('[data-avatar-blink]')) {
+      eye.classList.remove('blinking')
+      // Reading layout restarts the animation when the class is added back.
+      void eye.getBoundingClientRect()
+      eye.classList.add('blinking')
+      eye.addEventListener('animationend', () => eye.classList.remove('blinking'), { once: true })
     }
   }
 
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // Blink every 2.5–6.5 s, sometimes twice in a row, like a person does.
+  function scheduleBlink() {
+    setTimeout(
+      () => {
+        if (!document.hidden) {
+          blink()
+          if (Math.random() < 0.2) setTimeout(blink, 260)
+        }
+        scheduleBlink()
+      },
+      2500 + Math.random() * 4000
+    )
+  }
+
+  if (!reducedMotion) {
     window.addEventListener(
       'pointermove',
       (event) => {
         pointer = { x: event.clientX, y: event.clientY }
-        if (!frame) frame = requestAnimationFrame(update)
+        wake()
       },
       { passive: true }
     )
+    // Scrolling moves the eyes relative to a still cursor.
+    window.addEventListener('scroll', wake, { passive: true })
     // New pages from the client router bring fresh eyes; point them at the cursor too.
-    document.addEventListener('astro:page-load', () => {
-      if (!frame) frame = requestAnimationFrame(update)
-    })
+    document.addEventListener('astro:page-load', wake)
+    scheduleBlink()
   }
 </script>
