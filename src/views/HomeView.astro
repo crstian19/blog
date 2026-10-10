@@ -33,29 +33,15 @@ const showPosts = hasPinnedPosts ? pinnedPosts : await getNumPosts(lang, size)
       </h1>
       <div class="pro text-muted-foreground text-pretty">
         {lang === 'es' ? (
-          <>
-            <p>
-              Disfruto de la infraestructura y del open source. Llevo años manteniendo sistemas que no se pueden caer: más de 30 clústeres
-              de Kubernetes de distintas empresas y, desde hace un tiempo, una plataforma de inferencia.
-            </p>
-            <p>
-              En casa tengo otros tres clústeres de homelab, y en GitHub voy publicando lo que me hace falta por el camino: exporters de
-              Prometheus, una TUI para reproducir streaming, dashboards de Grafana… Prefiero entender cómo funciona algo por dentro antes
-              que fiarme de que funciona.
-            </p>
-          </>
+          <p>
+            Disfruto gestionando infraestructura como SRE, tanto en el trabajo como en casa, donde tengo tres clústeres en mi homelab.
+            Intento que todas las herramientas que hago sean open source y aportar lo que pueda a la comunidad 💜
+          </p>
         ) : (
-          <>
-            <p>
-              I enjoy infrastructure and open source. I've spent years running systems that can't go down: over 30 Kubernetes clusters for
-              different companies and, for a while now, an inference platform.
-            </p>
-            <p>
-              At home I run three more clusters as a homelab, and I publish on GitHub the tools I need along the way: Prometheus exporters,
-              a TUI for streaming playback, Grafana dashboards… I'd rather understand how something works inside than trust that it just
-              works.
-            </p>
-          </>
+          <p>
+            I enjoy running infrastructure as an SRE, both at work and at home, where I have three clusters in my homelab. I try to make
+            every tool I build open source and give back to the community as much as I can 💜
+          </p>
         )}
       </div>
       <div class="mt-6 flex gap-6">
