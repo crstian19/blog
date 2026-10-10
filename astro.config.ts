@@ -14,6 +14,14 @@ export default defineConfig({
   base: SITE.base,
   // Hugo published every URL with a trailing slash; keep them identical.
   trailingSlash: 'always',
+  // Pages of the old Hugo blog that have no equivalent here.
+  redirects: {
+    '/about/': '/',
+    '/readme/': '/',
+    '/en/readme/': '/en/',
+    '/categories/': '/tags/',
+    '/en/categories/': '/en/tags/',
+  },
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'viewport',

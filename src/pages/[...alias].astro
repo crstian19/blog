@@ -1,0 +1,32 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { getCollection } from 'astro:content'
+import { SITE } from '~/config'
+import { getPostUrl } from '~/lib/data'
+
+// Old URLs listed in a post's `aliases` (Hugo used /posts/<slug>/ before
+// /post/<slug>/) keep working as redirect pages, the same way Hugo served them.
+export const getStaticPaths = (async () => {
+  const posts = await getCollection('posts', ({ data }) => !data.draft)
+  return posts.flatMap((post) =>
+    post.data.aliases.map((alias) => ({
+      params: { alias: alias.replace(/^\/|\/$/g, '') },
+      props: { target: getPostUrl(post) },
+    }))
+  )
+}) satisfies GetStaticPaths
+
+const { target } = Astro.props
+const href = new URL(target, SITE.website).href
+---
+
+<!doctype html>
+<html>
+  <head>
+    <title>{href}</title>
+    <link rel="canonical" {href} />
+    <meta name="robots" content="noindex" />
+    <meta charset="utf-8" />
+    <meta http-equiv="refresh" content={`0; url=${target}`} />
+  </head>
+</html>

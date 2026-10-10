@@ -28,6 +28,8 @@ const posts = defineCollection({
         license: z.string().optional(),
         // Links translations whose slugs differ; defaults to the slug.
         translationKey: z.string().optional(),
+        // Old URLs of this post; each one gets a page that redirects here.
+        aliases: z.array(z.string()).default([]),
       })
       .transform((data) => ({
         ...data,
