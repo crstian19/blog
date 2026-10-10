@@ -816,3 +816,17 @@ image-figure-polaroid {
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* Images written side by side on one line (see plugins/rehype-image-rows.ts) */
+.image-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.image-row img {
+  margin: 0 !important;
+  width: 100%;
+  height: auto;
+}

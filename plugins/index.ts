@@ -2,7 +2,7 @@ import { visit } from 'unist-util-visit'
 import remarkSmartypants from 'remark-smartypants'
 import remarkDirective from 'remark-directive'
 import remarkDirectiveSugar from 'remark-directive-sugar'
-import remarkImgAttr from 'remark-imgattr'
+import remarkImgAttr from './remark-imgattr.js'
 import remarkMath from 'remark-math'
 import remarkReadingTime from './remark-reading-time'
 import remarkLQIP from './remark-lqip.js'
@@ -10,6 +10,7 @@ import remarkGithubCard from './remark-github-card'
 
 import rehypeSlug from 'rehype-slug'
 import rehypeUnwrapImages from 'rehype-unwrap-images'
+import rehypeImageRows from './rehype-image-rows'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypeCallouts from 'rehype-callouts'
 import rehypeExternalLinks from 'rehype-external-links'
@@ -61,6 +62,7 @@ export const remarkPlugins = [
 export const rehypePlugins = [
   rehypeSlug,
   rehypeUnwrapImages,
+  rehypeImageRows,
   [
     rehypeAutolinkHeadings,
     {
