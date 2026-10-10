@@ -1,137 +1,93 @@
-<div align="center">
-<img src="./src/assets/readme/logo.png" width="400" alt="Litos Logo" />
+# blog.crstian.me
 
-![License](https://img.shields.io/github/license/Dnzzk2/Litos?color=blue&style=flat-square)
-![Astro](https://img.shields.io/badge/Astro-v5.0-orange?style=flat-square&logo=astro)
-![React](https://img.shields.io/badge/React-v19.0-blue?style=flat-square&logo=react)
-![Tailwind](https://img.shields.io/badge/TailwindCSS-v4.0-38b2ac?style=flat-square&logo=tailwindcss)
-![TypeScript](https://img.shields.io/badge/TypeScript-v5.0-blue?style=flat-square&logo=typescript)
+Personal blog of Cristian Gutiérrez, SRE / AI Platform Engineer: Kubernetes, observability, inference platforms, homelab and open source. Written in Spanish and English.
 
-**A modern, elegant, and performance-focused blogging theme built for developers.**
+Built with [Astro 7](https://astro.build/) on top of the [Litos](https://github.com/Dnzzk2/Litos) theme, heavily customised: bilingual routing, a purple OLED theme, an avatar that follows the cursor and giscus comments.
 
-**English** | [简体中文](./README.zh-CN.md)
+## Stack
 
-[Demo](https://litos.vercel.app/) · [Report Bug](https://github.com/Dnzzk2/Litos/issues) · [Request Feature](https://github.com/Dnzzk2/Litos/issues)
+| Piece | Choice |
+|---|---|
+| Framework | Astro 7, static output |
+| Runtime and package manager | Bun |
+| Styling | Tailwind CSS 4, colour tokens in oklch |
+| Interactive islands | React 19 (theme toggle, GitHub contributions, tooltips) |
+| Markdown | unified pipeline (remark/rehype plugins), Expressive Code with Catppuccin |
+| Search | Pagefind, one index per language |
+| Comments | giscus on the Discussions of this repo |
+| Analytics | Umami and Rybbit |
 
-</div>
+## Commands
 
-## Introduction
+```bash
+bun install
+bun run dev       # dev server on http://localhost:4321
+bun run build     # astro check + build + Pagefind index into dist/
+bun run preview   # serve dist/ locally
+```
 
-Litos is a comprehensive blogging theme crafted with **Astro**, **React**, and **TailwindCSS**. It is designed to provide developers with a clean, professional, and highly customizable platform to showcase their work, thoughts, and photography.
+Search only works on a production build (`bun run build && bun run preview`).
 
-Unlike traditional themes, Litos emphasizes visual aesthetics without compromising on performance. It features fluid animations, a polished design system, and a robust set of built-in components to help you build your personal brand effectively.
+## Languages and URLs
 
-![Cover image](./src/assets/readme/readme.webp)
+Spanish is served without a prefix and English under `/en/`, the same URLs the previous Hugo blog published, so old links keep working:
 
-## Key Features
+| Page | Spanish | English |
+|---|---|---|
+| Home | `/` | `/en/` |
+| Posts | `/post/`, `/post/<slug>/` | `/en/post/`, `/en/post/<slug>/` |
+| Tags | `/tags/`, `/tags/<tag>/` | `/en/tags/`, `/en/tags/<tag>/` |
+| Projects | `/projects/` | `/en/projects/` |
+| Feeds | `/index.xml`, `/atom.xml` | `/en/index.xml`, `/en/atom.xml` |
 
-- **Modern Architecture** — Astro 5 + React 19 for blazing fast performance and dynamic interactivity.
-- **Elegant Design** — Fully responsive, meticulously crafted UI with TailwindCSS 4.
-- **Posts** — Multiple layout options (compact, cover image) with rich Markdown support.
-- **Projects** — Dedicated portfolio section with filterable tags.
-- **Photos** — Beautiful masonry layout for photography collections.
-- **Skills Showcase** — Visually represented technical stack configuration.
-- **Code Highlighting** — Integrated Expressive Code for beautiful syntax highlighting.
-- **Math Support** — KaTeX for rendering mathematical equations.
-- **Comments** — Gitalk integration for GitHub-based discussions.
-- **SEO** — Built-in sitemaps, robots.txt, and meta tags.
-- **Analytics** — Configurable Vercount and Umami analytics.
-- **Dark Mode** — Native light and dark theme support.
+The root page sends visitors whose browser prefers another language to `/en/`, unless they picked one in the header picker. Crawlers are never redirected.
 
-## Deploy
+Each route exists twice, in `src/pages/` and `src/pages/en/`, and both render the same view from `src/views/`. UI strings live in `src/i18n.ts`, one dictionary per language.
 
-Deploy your own Litos blog with one click:
+## Writing a post
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Dnzzk2/Litos)
-[![Deploy to Netlify](https://www.netlify.com/img/deploy/button.svg)](https://app.netlify.com/start/deploy?repository=https://github.com/Dnzzk2/Litos)
+Create `src/content/posts/<es|en>/<slug>/index.md`, with images in an `assets/` folder next to it:
 
-## Getting Started
+```yaml
+---
+title: 'Post title'
+description: 'One or two sentences for the card, search engines and social previews.'
+pubDate: 2026-10-10
+cover: assets/cover.jpg   # optional
+tags: ['kubernetes', 'grafana']
+translationKey: my-post   # only if the translation uses a different slug
+aliases: ['/posts/old-url/']   # optional, old URLs that redirect here
+draft: false
+---
+```
 
-### Prerequisites
+- Slugs start with the date, as in `2026-10-10-iris-3b-vs-budgetpixel-arena`.
+- A post and its translation are linked by `translationKey`, which defaults to the slug, so translations with the same slug need nothing extra. Both share one comment thread.
+- Tags become `/tags/<tag>/` in lower case with spaces turned into hyphens.
 
-- **Node.js** (v18 or higher)
-- **pnpm** (recommended)
+## Projects
 
-### Installation
+One file per project in `src/content/projects/<name>/index.md`:
 
-1.  **Clone the repository**
+```yaml
+---
+name: 'Gluetun Exporter'
+description:
+  es: 'Exporter de Prometheus para Gluetun.'
+  en: 'Prometheus exporter for Gluetun.'
+githubUrl: 'https://github.com/crstian19/gluetun-exporter'
+website: 'https://example.com'   # optional
+iconClass: 'icon-[simple-icons--wireguard]'   # any Iconify icon
+date: 2026-03-22
+---
+```
 
-    ```bash
-    git clone https://github.com/Dnzzk2/Litos.git
-    cd Litos
-    ```
-
-2.  **Install dependencies**
-
-    ```bash
-    pnpm install
-    ```
-
-3.  **Start the development server**
-
-    ```bash
-    pnpm dev
-    ```
-
-    Your site should now be running at `http://localhost:4321`.
+Stars and forks are refreshed live from GitHub.
 
 ## Configuration
 
-The primary configuration file is located at `src/config.ts`.
+`src/config.ts` holds the site identity, navigation, social links, the stack shown on the home page (logos from `public/stack.svg`), comments and analytics. The photos section is built but hidden behind `PHOTOS_CONFIG.enabled`.
 
-### Site Settings
-```typescript
-export const SITE: Site = {
-  title: 'Litos',
-  description: 'Your site description here.',
-  website: 'https://your-domain.com',
-  author: 'Your Name',
-  // ...other settings
-}
-```
+## Credits
 
-### Feature Toggles
-```typescript
-export const SKILLSSHOWCASE_CONFIG = {
-  SKILLS_ENABLED: true,
-  // ...
-}
-
-export const GITHUB_CONFIG = {
-  ENABLED: true,
-  // ...
-}
-```
-
-### Navigation
-Links for the Header and Footer can be managed via `HEADER_LINKS` and `FOOTER_LINKS`.
-
-## Scripts
-
-| Script | Description |
-| :--- | :--- |
-| `pnpm dev` | Starts the local development server. |
-| `pnpm build` | Builds the site for production. |
-| `pnpm preview` | Previews the built production site locally. |
-| `pnpm format` | Formats code using Prettier. |
-| `pnpm check` | Runs Astro check for diagnostics. |
-
-## License
-
-Distributed under the MIT License. See [MIT LICENSE](LICENSE) for more information.
-
-## Star History
-
-<a href="https://www.star-history.com/#Dnzzk2/Litos&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=Dnzzk2/Litos&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=Dnzzk2/Litos&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=Dnzzk2/Litos&type=date&legend=top-left" />
- </picture>
-</a>
-
----
-
-<p align="center">
-made with 💗 by <a href="https://github.com/Dnzzk2">Dnzzk2</a> !
-</p>
+Based on [Litos](https://github.com/Dnzzk2/Litos) by Dnzzk2, released under the MIT licence (see `LICENSE`).

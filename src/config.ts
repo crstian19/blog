@@ -144,7 +144,7 @@ export const COMMENT_CONFIG: CommentConfig = {
   enabled: true,
   system: 'giscus',
   giscus: {
-    repo: 'crstian19/My-blog',
+    repo: 'crstian19/blog',
     repoId: 'MDEwOlJlcG9zaXRvcnkyNjk3ODcwNjI=',
     category: 'Announcements',
     categoryId: 'DIC_kwDOEBSfts4DHgvf',
