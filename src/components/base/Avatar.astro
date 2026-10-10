@@ -1,0 +1,78 @@
+---
+import { Image } from 'astro:assets'
+import { SITE } from '~/config'
+import { cn } from '~/lib/utils'
+import base from '~/assets/avatar/base.png'
+import eyeLeft from '~/assets/avatar/eye-left.png'
+import eyeRight from '~/assets/avatar/eye-right.png'
+
+interface Props {
+  /** Rendered height in CSS pixels; the width follows the drawing's aspect ratio. */
+  height: number
+  class?: string
+}
+
+const { height, class: className } = Astro.props
+const width = Math.round((height * base.width) / base.height)
+
+// Eye boxes as a percentage of the face, measured on the original drawing.
+const eyes = [
+  { src: eyeLeft, left: 26.349, top: 35.888, width: 13.122, height: 16.411 },
+  { src: eyeRight, left: 62.963, top: 47.25, width: 13.228, height: 16.592 },
+]
+---
+
+<span class={cn('relative inline-block select-none', className)} style={`width:${width}px;height:${height}px`} data-avatar>
+  <Image src={base} {width} {height} alt={SITE.author} class="size-full" densities={[1, 2, 3]} loading="eager" />
+  {eyes.map((eye) => (
+    <Image
+      src={eye.src}
+      alt=""
+      aria-hidden="true"
+      width={Math.ceil((width * eye.width) / 100)}
+      densities={[1, 2, 3]}
+      loading="eager"
+      data-avatar-eye
+      class="absolute will-change-transform transition-transform duration-150 ease-out"
+      style={`left:${eye.left}%;top:${eye.top}%;width:${eye.width}%;height:${eye.height}%`}
+    />
+  ))}
+</span>
+
+<script>
+  // The eyes look at the pointer: each one shifts towards it by up to MAX_SHIFT
+  // of its own size, reaching the full shift once the pointer is FULL_AT px away.
+  const MAX_SHIFT = 35
+  const FULL_AT = 240
+
+  let pointer: { x: number; y: number } | null = null
+  let frame = 0
+
+  function update() {
+    frame = 0
+    if (!pointer) return
+    for (const eye of document.querySelectorAll<HTMLElement>('[data-avatar-eye]')) {
+      const rect = eye.getBoundingClientRect()
+      const dx = pointer.x - (rect.left + rect.width / 2)
+      const dy = pointer.y - (rect.top + rect.height / 2)
+      const distance = Math.hypot(dx, dy) || 1
+      const reach = Math.min(distance / FULL_AT, 1) * MAX_SHIFT
+      eye.style.transform = `translate(${(dx / distance) * reach}%, ${(dy / distance) * reach}%)`
+    }
+  }
+
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        pointer = { x: event.clientX, y: event.clientY }
+        if (!frame) frame = requestAnimationFrame(update)
+      },
+      { passive: true }
+    )
+    // New pages from the client router bring fresh eyes; point them at the cursor too.
+    document.addEventListener('astro:page-load', () => {
+      if (!frame) frame = requestAnimationFrame(update)
+    })
+  }
+</script>

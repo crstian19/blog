@@ -1,5 +1,5 @@
 ---
-import { HEADER_LINKS, SITE } from '~/config'
+import { HEADER_LINKS } from '~/config'
 import ThemeToggle from '~/components/theme/ThemeToggle'
 import HeaderGradient from '~/components/theme/HeaderGradient.astro'
 import SectionDivider from '~/components/base/SectionDivider.astro'
@@ -7,8 +7,7 @@ import HeaderLink from '~/components/base/HeaderLink.astro'
 import SearchSwitch from '~/components/base/SearchSwitch.astro'
 import LanguagePicker from '~/components/base/LanguagePicker.astro'
 import { getLocale, localizePath, useTranslations, type Locale } from '~/i18n'
-import { Image } from 'astro:assets'
-import avatar from '~/assets/avatar.png'
+import Avatar from '~/components/base/Avatar.astro'
 
 interface Props {
   alternates: Partial<Record<Locale, string>>
@@ -24,7 +23,7 @@ const t = useTranslations(lang)
   <div class="mx-auto global-layout-width flex justify-between px-6 sm:px-8 py-4 lg:px-8">
     <div class="flex gap-3 sm:gap-6 items-center flex-shrink-0">
       <a href={localizePath(lang, '/')} class="pointer-events-auto select-none" aria-label={t('nav.home')}>
-        <Image src={avatar} width={34} alt={SITE.author} class="h-10 w-auto drop-shadow-[0_0_10px_var(--color-brand)] transition-transform hover:-rotate-6" densities={[1, 2, 3]} loading="eager" />
+        <Avatar height={40} class="transition-transform hover:-rotate-6" />
       </a>
       <div class="flex gap-1">
         {HEADER_LINKS.map((link) => (
