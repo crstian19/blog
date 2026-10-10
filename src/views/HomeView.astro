@@ -28,20 +28,34 @@ const showPosts = hasPinnedPosts ? pinnedPosts : await getNumPosts(lang, size)
       <h1 class="flex flex-col gap-2">
         <span class="text-4xl sm:text-5xl tracking-tight gradient-text w-fit">$ whoami</span>
         <span class="text-muted-foreground font-light text-xl sm:text-2xl block tracking-wide text-balance">
-          {lang === 'es' ? 'Cristian, Site Reliability Engineer' : 'Cristian, Site Reliability Engineer from Spain'}
+          Cristian, SRE / AI Platform Engineer
         </span>
       </h1>
       <div class="pro text-muted-foreground text-pretty">
         {lang === 'es' ? (
-          <p>
-            Uso Arch Linux en el PC y el portátil, y NixOS en los servidores. Me gusta estar aprendiendo siempre, así que aquí escribo de
-            temas muy distintos: frontend, backend, DevOps, sysadmin…
-          </p>
+          <>
+            <p>
+              Disfruto de la infraestructura y del open source. Llevo años manteniendo sistemas que no se pueden caer: más de 30 clústeres
+              de Kubernetes de distintas empresas y, desde hace un tiempo, una plataforma de inferencia.
+            </p>
+            <p>
+              En casa tengo otros tres clústeres de homelab, y en GitHub voy publicando lo que me hace falta por el camino: exporters de
+              Prometheus, una TUI para reproducir streaming, dashboards de Grafana… Prefiero entender cómo funciona algo por dentro antes
+              que fiarme de que funciona.
+            </p>
+          </>
         ) : (
-          <p>
-            I use Arch Linux on my PC and laptop, and NixOS on my servers. I like to keep learning, so I write here about very different
-            topics: frontend, backend, DevOps, sysadmin…
-          </p>
+          <>
+            <p>
+              I enjoy infrastructure and open source. I've spent years running systems that can't go down: over 30 Kubernetes clusters for
+              different companies and, for a while now, an inference platform.
+            </p>
+            <p>
+              At home I run three more clusters as a homelab, and I publish on GitHub the tools I need along the way: Prometheus exporters,
+              a TUI for streaming playback, Grafana dashboards… I'd rather understand how something works inside than trust that it just
+              works.
+            </p>
+          </>
         )}
       </div>
       <div class="mt-6 flex gap-6">

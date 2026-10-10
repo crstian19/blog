@@ -29,7 +29,8 @@ export function unlocalizePath(path: string): string {
 }
 
 const es = {
-  'site.description': 'Blog de Cristian sobre DevOps, Kubernetes, observabilidad, homelab y lo que vaya probando.',
+  'site.description':
+    'Blog de Cristian, SRE / AI Platform Engineer: Kubernetes, observabilidad, plataformas de inferencia, homelab y open source.',
   'nav.home': 'Inicio',
   'nav.posts': 'Posts',
   'nav.tags': 'Etiquetas',
@@ -105,7 +106,8 @@ const es = {
 type Dictionary = Record<keyof typeof es, string>
 
 const en: Dictionary = {
-  'site.description': "Cristian's blog about DevOps, Kubernetes, observability, homelab and whatever I'm trying out.",
+  'site.description':
+    "Cristian's blog, SRE / AI Platform Engineer: Kubernetes, observability, inference platforms, homelab and open source.",
   'nav.home': 'Home',
   'nav.posts': 'Posts',
   'nav.tags': 'Tags',
