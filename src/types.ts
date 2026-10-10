@@ -70,6 +70,7 @@ export interface PostConfig {
 }
 
 export interface Skill {
+  /** Symbol id in public/stack.svg. */
   icon: string
   name: string
   url?: string

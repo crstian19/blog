@@ -58,44 +58,46 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
 ]
 
-/**
- * SkillsShowcase 配置接口 / SkillsShowcase configuration type
- * get icon https://icon-sets.iconify.design/
- */
+// Logos come from public/stack.svg, the same sprite crstian.me uses; `icon`
+// is the symbol id. Same stack and order as the crstian.me home page.
 export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
   SKILLS_ENABLED: true,
   SKILLS_DATA: [
     {
       direction: 'left',
       skills: [
-        { name: 'Kubernetes', icon: 'icon-[skill-icons--kubernetes]', url: 'https://kubernetes.io/' },
-        { name: 'Argo CD', icon: 'icon-[devicon--argocd]', url: 'https://argo-cd.readthedocs.io/' },
-        { name: 'Helm', icon: 'icon-[devicon--helm]', url: 'https://helm.sh/' },
-        { name: 'Docker', icon: 'icon-[skill-icons--docker]', url: 'https://www.docker.com/' },
-        { name: 'Terraform', icon: 'icon-[skill-icons--terraform-dark]', url: 'https://www.terraform.io/' },
-        { name: 'AWS', icon: 'icon-[skill-icons--aws-dark]', url: 'https://aws.amazon.com/' },
+        { name: 'vLLM', icon: 'vllm', url: 'https://docs.vllm.ai/' },
+        { name: 'LiteLLM', icon: 'litellm', url: 'https://www.litellm.ai/' },
+        { name: 'Kubernetes', icon: 'k8s', url: 'https://kubernetes.io/' },
+        { name: 'AWS', icon: 'aws', url: 'https://aws.amazon.com/' },
+        { name: 'DigitalOcean', icon: 'digitalocean', url: 'https://www.digitalocean.com/' },
+        { name: 'Azure', icon: 'azure', url: 'https://azure.microsoft.com/' },
+        { name: 'Google Cloud', icon: 'gcp', url: 'https://cloud.google.com/' },
+        { name: 'Argo', icon: 'argo', url: 'https://argoproj.github.io/' },
       ],
     },
     {
       direction: 'right',
       skills: [
-        { name: 'Prometheus', icon: 'icon-[skill-icons--prometheus]', url: 'https://prometheus.io/' },
-        { name: 'Grafana', icon: 'icon-[skill-icons--grafana-dark]', url: 'https://grafana.com/' },
-        { name: 'Go', icon: 'icon-[skill-icons--golang]', url: 'https://go.dev/' },
-        { name: 'Astro', icon: 'icon-[skill-icons--astro]', url: 'https://astro.build/' },
-        { name: 'Svelte', icon: 'icon-[skill-icons--svelte]', url: 'https://svelte.dev/' },
-        { name: 'Cloudflare', icon: 'icon-[skill-icons--cloudflare-dark]', url: 'https://www.cloudflare.com/' },
+        { name: 'Kong', icon: 'kong', url: 'https://konghq.com/' },
+        { name: 'GitHub Actions', icon: 'github-actions', url: 'https://github.com/features/actions' },
+        { name: 'GitLab CI', icon: 'gitlab-ci', url: 'https://docs.gitlab.com/ee/ci/' },
+        { name: 'Vault', icon: 'vault', url: 'https://www.vaultproject.io/' },
+        { name: 'Traefik', icon: 'traefik', url: 'https://traefik.io/traefik/' },
+        { name: 'Nginx', icon: 'nginx', url: 'https://nginx.org/' },
+        { name: 'PostgreSQL', icon: 'postgresql', url: 'https://www.postgresql.org/' },
       ],
     },
     {
       direction: 'left',
       skills: [
-        { name: 'Arch Linux', icon: 'icon-[skill-icons--arch-dark]', url: 'https://archlinux.org/' },
-        { name: 'NixOS', icon: 'icon-[devicon--nixos]', url: 'https://nixos.org/' },
-        { name: 'Traefik', icon: 'icon-[devicon--traefikproxy]', url: 'https://traefik.io/' },
-        { name: 'Git', icon: 'icon-[skill-icons--git]', url: 'https://git-scm.com/' },
-        { name: 'Neovim', icon: 'icon-[skill-icons--neovim-dark]', url: 'https://neovim.io/' },
-        { name: 'Obsidian', icon: 'icon-[skill-icons--obsidian-dark]', url: 'https://obsidian.md/' },
+        { name: 'Grafana', icon: 'grafana', url: 'https://grafana.com/' },
+        { name: 'Prometheus', icon: 'prometheus', url: 'https://prometheus.io/' },
+        { name: 'Python', icon: 'python', url: 'https://www.python.org/' },
+        { name: 'Terraform', icon: 'terraform', url: 'https://www.terraform.io/' },
+        { name: 'Golang', icon: 'golang', url: 'https://go.dev/' },
+        { name: 'Astro', icon: 'astro', url: 'https://astro.build/' },
+        { name: 'Arch', icon: 'arch', url: 'https://archlinux.org/' },
       ],
     },
   ],

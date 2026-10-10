@@ -29,11 +29,10 @@ const duplicateSkills = (skills: Skill[]) => [...skills, ...skills, ...skills, .
             const props = skill.url ? { href: skill.url, target: '_blank', rel: 'noopener noreferrer' } : {}
             return (
               <div class="skill-card mx-2">
-                <Tag
-                  class="skill-inner group flex items-center gap-2 px-3 py-1.5 text-foreground whitespace-nowrap transition-all duration-200"
-                  {...props}
-                >
-                  <span class={cn('flex items-center justify-center w-5 h-5', skill.icon)} />
+                <Tag class="skill-inner group flex items-center gap-2 px-3 py-1.5 whitespace-nowrap transition-all duration-200" {...props}>
+                  <svg class="w-5 h-5 shrink-0" aria-hidden="true">
+                    <use href={`/stack.svg#${skill.icon}`} />
+                  </svg>
                   <span class="font-sans text-sm font-medium">{skill.name}</span>
                 </Tag>
               </div>
@@ -67,26 +66,29 @@ const duplicateSkills = (skills: Skill[]) => [...skills, ...skills, ...skills, .
     }
   }
 
+  /* Pill chips in the style of the crstian.me stack cards. */
   .skill-card {
     position: relative;
-    border-radius: 0.375rem;
-    background-color: oklch(var(--accent));
-    overflow: hidden;
+    border-radius: 9999px;
     /* 性能优化 */
-    contain: layout style paint;
+    contain: layout style;
     transform: translateZ(0);
   }
 
   .skill-inner {
     position: relative;
-    margin: 1px;
-    border-radius: calc(0.375rem - 1px);
-    background: oklch(var(--accent));
+    border-radius: 9999px;
+    border: 1px solid oklch(var(--foreground) / 0.1);
+    background: oklch(var(--foreground) / 0.03);
+    color: oklch(var(--muted-foreground));
     z-index: 1;
   }
 
   .skill-inner:hover {
-    background: oklch(var(--tag-bg-hover));
+    border-color: oklch(var(--foreground) / 0.3);
+    background: oklch(var(--foreground) / 0.08);
+    color: oklch(var(--foreground));
+    box-shadow: 0 0 24px -6px oklch(var(--brand) / 0.7);
   }
 
   .skills-container {
