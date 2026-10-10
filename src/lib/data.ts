@@ -85,3 +85,9 @@ export function tagSlug(tag: string): string {
 export function getTagUrl(lang: Locale, tag: string): string {
   return localizePath(lang, `/tags/${tagSlug(tag)}/`)
 }
+
+/** Published projects, newest first; undated ones go last. */
+export async function getAllProjects(): Promise<CollectionEntry<'projects'>[]> {
+  const projects = (await getCollection('projects')).filter((project) => !project.data.draft)
+  return projects.sort((a, b) => (b.data.date?.getTime() ?? 0) - (a.data.date?.getTime() ?? 0))
+}

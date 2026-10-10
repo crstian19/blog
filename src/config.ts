@@ -29,11 +29,17 @@ export const PHOTOS_CONFIG: PhotosConfig = {
 const PHOTOS_LINK: Link[] = PHOTOS_CONFIG.enabled ? [{ key: 'nav.photos', url: '/photos/' }] : []
 
 // URLs are locale-neutral; components prefix them with localizePath().
-export const HEADER_LINKS: Link[] = [{ key: 'nav.posts', url: '/post/' }, { key: 'nav.tags', url: '/tags/' }, ...PHOTOS_LINK]
+export const HEADER_LINKS: Link[] = [
+  { key: 'nav.posts', url: '/post/' },
+  { key: 'nav.projects', url: '/projects/' },
+  { key: 'nav.tags', url: '/tags/' },
+  ...PHOTOS_LINK,
+]
 
 export const FOOTER_LINKS: Link[] = [
   { key: 'nav.home', url: '/' },
   { key: 'nav.posts', url: '/post/' },
+  { key: 'nav.projects', url: '/projects/' },
   { key: 'nav.tags', url: '/tags/' },
   ...PHOTOS_LINK,
 ]

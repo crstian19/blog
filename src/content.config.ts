@@ -35,4 +35,29 @@ const posts = defineCollection({
       })),
 })
 
-export const collections = { posts }
+// Projects are shared by both locales; only the description is translated.
+const projects = defineCollection({
+  loader: glob({
+    pattern: '**/*.{md,mdx}',
+    base: './src/content/projects',
+  }),
+  schema: ({ image }) =>
+    z.object({
+      name: z.string(),
+      description: z.object({ es: z.string(), en: z.string() }),
+      githubUrl: z.string().optional(),
+      website: z.string().optional(),
+      // 'icon' renders iconClass (an Iconify class); 'image' renders icon.
+      type: z.enum(['icon', 'image']).default('icon'),
+      icon: image().optional(),
+      iconClass: z.string().optional(),
+      imageClass: z.string().optional(),
+      // Fallbacks shown until the live GitHub counts load.
+      star: z.number().default(0),
+      fork: z.number().default(0),
+      date: z.date().optional(),
+      draft: z.boolean().default(false),
+    }),
+})
+
+export const collections = { posts, projects }
