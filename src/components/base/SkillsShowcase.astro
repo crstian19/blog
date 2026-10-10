@@ -12,39 +12,37 @@ const duplicateSkills = (skills: Skill[]) => [...skills, ...skills, ...skills, .
 ---
 
 <div class="skills-container relative isolate py-2 px-2 max-md:px-0 perspective-[1500px]">
-  {
-    skillsData.map((row: SkillData) => {
-      const duplicatedSkills = duplicateSkills(row.skills)
-      return (
-        <div class="relative w-full overflow-hidden my-4 group content-visibility-auto">
-          <div
-            class={cn(
-              'flex w-max will-change-transform',
-              row.direction === 'right' ? 'animate-[scroll-reverse_30s_linear_infinite]' : 'animate-[scroll_30s_linear_infinite]',
-              'group-hover:[animation-play-state:paused]'
-            )}
-            style="transform: translateZ(0);"
-          >
-            {duplicatedSkills.map((skill) => {
-              const Tag = skill.url ? 'a' : 'div'
-              const props = skill.url ? { href: skill.url, target: '_blank', rel: 'noopener noreferrer' } : {}
-              return (
-                <div class="skill-card mx-2">
-                  <Tag
-                    class="skill-inner group flex items-center gap-2 px-3 py-1.5 text-foreground whitespace-nowrap transition-all duration-200"
-                    {...props}
-                  >
-                    <span class={cn('flex items-center justify-center w-5 h-5', skill.icon)} />
-                    <span class="font-sans text-sm font-medium">{skill.name}</span>
-                  </Tag>
-                </div>
-              )
-            })}
-          </div>
+  {skillsData.map((row: SkillData) => {
+    const duplicatedSkills = duplicateSkills(row.skills)
+    return (
+      <div class="relative w-full overflow-hidden my-4 group content-visibility-auto">
+        <div
+          class={cn(
+            'flex w-max will-change-transform',
+            row.direction === 'right' ? 'animate-[scroll-reverse_30s_linear_infinite]' : 'animate-[scroll_30s_linear_infinite]',
+            'group-hover:[animation-play-state:paused]'
+          )}
+          style="transform: translateZ(0);"
+        >
+          {duplicatedSkills.map((skill) => {
+            const Tag = skill.url ? 'a' : 'div'
+            const props = skill.url ? { href: skill.url, target: '_blank', rel: 'noopener noreferrer' } : {}
+            return (
+              <div class="skill-card mx-2">
+                <Tag
+                  class="skill-inner group flex items-center gap-2 px-3 py-1.5 text-foreground whitespace-nowrap transition-all duration-200"
+                  {...props}
+                >
+                  <span class={cn('flex items-center justify-center w-5 h-5', skill.icon)} />
+                  <span class="font-sans text-sm font-medium">{skill.name}</span>
+                </Tag>
+              </div>
+            )
+          })}
         </div>
-      )
-    })
-  }
+      </div>
+    )
+  })}
 
   <div class="skills-blur skills-blur-left pointer-events-none absolute left-0 top-0 w-[10%] h-full z-10"></div>
   <div class="skills-blur skills-blur-right pointer-events-none absolute right-0 top-0 w-[10%] h-full z-10"></div>
@@ -110,5 +108,4 @@ const duplicateSkills = (skills: Skill[]) => [...skills, ...skills, ...skills, .
     -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 100%);
     mask-image: linear-gradient(to left, #000 0%, transparent 100%);
   }
-
 </style>

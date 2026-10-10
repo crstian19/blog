@@ -1,0 +1,56 @@
+---
+import type { Page } from 'astro'
+import type { CollectionEntry } from 'astro:content'
+import { POSTS_CONFIG } from '~/config'
+import { getLocale, localizePath, useTranslations, type Locale } from '~/i18n'
+import Layout from '~/layouts/Layout.astro'
+import Pagination from '~/components/base/Pagination.astro'
+import List from '~/components/posts/card/List.astro'
+
+interface Props {
+  page: Page<CollectionEntry<'posts'>>
+  tag: string
+  slug: string
+  alternates: Partial<Record<Locale, string>>
+}
+
+const { page, tag, slug, alternates } = Astro.props
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+const description = `${t('tags.taggedWith')} #${tag}`
+---
+
+<Layout title={`#${tag}`} {description} alternates={page.currentPage === 1 ? alternates : { [lang]: Astro.url.pathname }}>
+  <div class="relative z-[1] py-8 pb-10 px-6 sm:px-8">
+    <div class="mb-12 md:mb-16">
+      <div class="flex flex-col gap-3">
+        <nav class="flex items-center gap-3 text-sm text-muted-foreground/80">
+          <a href={localizePath(lang, '/tags/')} class="group flex items-center gap-2 hover:text-primary transition-colors">
+            <span class="icon-[ph--tag-simple] w-4 h-4"></span>
+            <span>{t('tags.title')}</span>
+          </a>
+          <span class="text-muted-foreground/30">/</span>
+          <span class="text-foreground/90">#{tag}</span>
+        </nav>
+
+        <div class="flex gap-2 justify-between">
+          <h1 class="text-xl sm:text-3xl font-medium tracking-wide">#{tag}</h1>
+          <div class="flex flex-col items-end justify-center gap-1 text-sm text-muted-foreground/70">
+            <div class="flex items-center gap-2">
+              <span class="icon-[ph--article-medium] w-4 h-4"></span>
+              <span>
+                {page.total} {page.total === 1 ? t('tags.post') : t('tags.posts')}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-8 fade-up">
+      <List posts={page.data} type={POSTS_CONFIG.tagsPageConfig.type} coverLayout={POSTS_CONFIG.tagsPageConfig?.coverLayout} />
+    </div>
+
+    <Pagination {page} baseUrl={localizePath(lang, `/tags/${slug}`)} class="mt-12" />
+  </div>
+</Layout>

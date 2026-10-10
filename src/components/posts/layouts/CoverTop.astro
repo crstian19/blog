@@ -4,6 +4,10 @@ import { ANALYTICS_CONFIG, POSTS_CONFIG } from '~/config'
 import Prose from '~/components/posts/base/Prose.astro'
 import Badge from '~/components/posts/base/Badge.astro'
 import LqipImage from '~/components/base/LqipImage.astro'
+import { getLocale, useTranslations } from '~/i18n'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
 
 interface Props {
   frontmatter: any
@@ -12,31 +16,29 @@ interface Props {
 }
 
 const { frontmatter, minutesRead, wordCount } = Astro.props
-const recommendText = POSTS_CONFIG.recommendText
+const recommendText = t('posts.recommend')
 ---
 
 <article class="relative">
   <div class="fade-up">
-    {
-      frontmatter.cover && (
-        <div class="w-full">
-          <div class="max-w-5xl mx-auto px-6 sm:px-8 pt-4">
-            <div class="aspect-[1200/630] w-full overflow-hidden">
-              <LqipImage
-                src={frontmatter.cover}
-                alt=""
-                width={1200}
-                height={630}
-                loading="lazy"
-                decoding="async"
-                format="webp"
-                class="w-full h-full object-cover"
-              />
-            </div>
+    {frontmatter.cover && (
+      <div class="w-full">
+        <div class="max-w-5xl mx-auto px-6 sm:px-8 pt-4">
+          <div class="aspect-[1200/630] w-full overflow-hidden">
+            <LqipImage
+              src={frontmatter.cover}
+              alt=""
+              width={1200}
+              height={630}
+              loading="lazy"
+              decoding="async"
+              format="webp"
+              class="w-full h-full object-cover"
+            />
           </div>
         </div>
-      )
-    }
+      </div>
+    )}
 
     <header class="px-6 sm:px-8 py-6">
       <div class="global-layout-width mx-auto">
@@ -54,50 +56,46 @@ const recommendText = POSTS_CONFIG.recommendText
         <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted-foreground/85 mt-4">
           <div class="flex items-center gap-1.5">
             <span class="icon-[ph--calendar-blank] w-4 h-4 opacity-85"></span>
-            <time datetime={frontmatter.pubDate.toISOString()}>
-              {formatDate(frontmatter.pubDate)}
-            </time>
-            {
-              frontmatter.updatedDate && (
-                <div class="flex items-center gap-1.5">
-                  / Update
-                  <time datetime={frontmatter.updatedDate.toISOString()}>{formatDate(frontmatter.updatedDate)}</time>
-                </div>
-              )
-            }
+            <time datetime={frontmatter.pubDate.toISOString()}>{formatDate(frontmatter.pubDate, 'default', lang)}</time>
+            {frontmatter.updatedDate && (
+              <div class="flex items-center gap-1.5">
+                / {t('posts.updated')}
+                <time datetime={frontmatter.updatedDate.toISOString()}>{formatDate(frontmatter.updatedDate, 'default', lang)}</time>
+              </div>
+            )}
           </div>
 
-          {
-            minutesRead && (
-              <div class="flex items-center gap-1.5">
-                <span class="icon-[ph--book-open-text] w-4 h-4 opacity-85" />
-                <span>{minutesRead} mins</span>
-              </div>
-            )
-          }
+          {minutesRead && (
+            <div class="flex items-center gap-1.5">
+              <span class="icon-[ph--book-open-text] w-4 h-4 opacity-85" />
+              <span>
+                {minutesRead} {t('posts.minutes')}
+              </span>
+            </div>
+          )}
 
-          {
-            POSTS_CONFIG.wordCountView && wordCount && (
-              <div class="flex items-center gap-1.5">
-                <span class="icon-[ph--pencil-simple-line] w-4 h-4 opacity-85" />
-                <span>{wordCount} words</span>
-              </div>
-            )
-          }
+          {POSTS_CONFIG.wordCountView && wordCount && (
+            <div class="flex items-center gap-1.5">
+              <span class="icon-[ph--pencil-simple-line] w-4 h-4 opacity-85" />
+              <span>
+                {wordCount} {t('posts.words')}
+              </span>
+            </div>
+          )}
 
-          {
-            ANALYTICS_CONFIG.vercount?.enabled && (
-              <div class="flex items-center gap-1.5">
-                <span class="icon-[ph--eye] w-4 h-4 opacity-85" />
-                <span id="vercount_value_page_pv">Loading</span> views
-              </div>
-            )
-          }
+          {ANALYTICS_CONFIG.vercount?.enabled && (
+            <div class="flex items-center gap-1.5">
+              <span class="icon-[ph--eye] w-4 h-4 opacity-85" />
+              <span id="vercount_value_page_pv">…</span> {t('posts.views')}
+            </div>
+          )}
         </div>
 
         <div class="flex gap-2 sm:gap-2.5 lg:gap-3 flex-wrap pt-4">
           {frontmatter.recommend && <Badge type="recommend" content={recommendText} />}
-          {frontmatter.tags?.map((tag: string) => <Badge type="tag" content={tag} size="sm" />)}
+          {frontmatter.tags?.map((tag: string) => (
+            <Badge type="tag" content={tag} size="sm" />
+          ))}
         </div>
 
         <div class="border-b border-border/60 mt-6 sm:mt-8 mb-6 sm:mb-8"></div>

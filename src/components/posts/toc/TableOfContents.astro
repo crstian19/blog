@@ -1,7 +1,10 @@
 ---
 import type { MarkdownHeading } from 'astro'
-import { POSTS_CONFIG } from '~/config'
 import { cn } from '~/lib/utils'
+import { getLocale, useTranslations } from '~/i18n'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
 
 interface Props {
   headings: MarkdownHeading[]
@@ -38,7 +41,7 @@ const getRelativeIndentClass = (depth: number) => {
   <nav class="p-4">
     <h3 class="font-sans text-sm font-medium mb-4 text-foreground/80 flex items-center gap-2 pl-2">
       <span class="icon-[fluent--list-20-filled] w-4 h-4 opacity-85"></span>
-      {POSTS_CONFIG.tocText}
+      {t('posts.toc')}
     </h3>
     <div class="relative h-[calc(100vh-24rem)] overflow-hidden">
       <ul
@@ -46,35 +49,33 @@ const getRelativeIndentClass = (depth: number) => {
         data-desktop-toc-list
         style="content-visibility: auto;"
       >
-        {
-          filteredHeadings.map((heading) => {
-            const depthClass = heading.depth === 1 ? 'font-medium text-foreground' : 'text-foreground/60 hover:text-foreground/90'
+        {filteredHeadings.map((heading) => {
+          const depthClass = heading.depth === 1 ? 'font-medium text-foreground' : 'text-foreground/60 hover:text-foreground/90'
 
-            return (
-              <li class={cn(depthClass, getRelativeIndentClass(heading.depth) || '')}>
-                <a
-                  href={`#${heading.slug}`}
-                  data-desktop-heading-link
-                  class={cn(
-                    'group flex items-center text-sm min-h-[1.75rem] w-full overflow-hidden relative',
-                    'hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/25 hover:to-transparent',
-                    'data-[active]:bg-gradient-to-r data-[active]:from-primary/10 dark:data-[active]:from-primary/25 data-[active]:to-transparent '
-                  )}
+          return (
+            <li class={cn(depthClass, getRelativeIndentClass(heading.depth) || '')}>
+              <a
+                href={`#${heading.slug}`}
+                data-desktop-heading-link
+                class={cn(
+                  'group flex items-center text-sm min-h-[1.75rem] w-full overflow-hidden relative',
+                  'hover:bg-gradient-to-r hover:from-primary/10 dark:hover:from-primary/25 hover:to-transparent',
+                  'data-[active]:bg-gradient-to-r data-[active]:from-primary/10 dark:data-[active]:from-primary/25 data-[active]:to-transparent '
+                )}
+              >
+                <span class="font-mono flex items-center px-2 text-xs text-primary/50 group-hover:text-primary group-data-[active]:text-primary min-w-[2rem]">
+                  {heading.order.toString().padStart(2, '0')}
+                </span>
+                <span
+                  class="leading-[1.75rem] truncate pr-2 group-hover:text-primary group-data-[active]:text-primary"
+                  title={heading.text}
                 >
-                  <span class="font-mono flex items-center px-2 text-xs text-primary/50 group-hover:text-primary group-data-[active]:text-primary min-w-[2rem]">
-                    {heading.order.toString().padStart(2, '0')}
-                  </span>
-                  <span
-                    class="leading-[1.75rem] truncate pr-2 group-hover:text-primary group-data-[active]:text-primary"
-                    title={heading.text}
-                  >
-                    {heading.text}
-                  </span>
-                </a>
-              </li>
-            )
-          })
-        }
+                  {heading.text}
+                </span>
+              </a>
+            </li>
+          )
+        })}
       </ul>
     </div>
   </nav>

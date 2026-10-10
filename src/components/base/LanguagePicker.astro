@@ -1,0 +1,54 @@
+---
+import { LOCALES, LOCALE_LABELS, getLocale, localizePath, useTranslations, type Locale } from '~/i18n'
+import { cn } from '~/lib/utils'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+
+interface Props {
+  alternates: Partial<Record<Locale, string>>
+}
+
+const { alternates } = Astro.props
+---
+
+<nav class="flex items-center text-xs font-medium" aria-label={t('nav.language')}>
+  {LOCALES.map((locale, index) => (
+    <>
+      {index > 0 && (
+        <span class="text-muted-foreground/40 px-0.5" aria-hidden="true">
+          /
+        </span>
+      )}
+      <a
+        href={alternates[locale] ?? localizePath(locale, '/post/')}
+        hreflang={locale}
+        lang={locale}
+        title={LOCALE_LABELS[locale]}
+        aria-current={locale === lang ? 'true' : undefined}
+        data-lang-switch={locale}
+        data-astro-reload
+        class={cn(
+          'px-1.5 py-0.5 uppercase tracking-wide transition-colors',
+          locale === lang ? 'text-foreground' : 'text-muted-foreground hover:text-foreground'
+        )}
+      >
+        {locale}
+      </a>
+    </>
+  ))}
+</nav>
+
+<script is:inline>
+  // Remember an explicit choice so the root page stops guessing from the browser.
+  if (!window.__langSwitchBound) {
+    window.__langSwitchBound = true
+    document.addEventListener('click', (event) => {
+      const link = event.target instanceof Element && event.target.closest('[data-lang-switch]')
+      if (!link) return
+      try {
+        localStorage.setItem('lang', link.getAttribute('data-lang-switch'))
+      } catch {}
+    })
+  }
+</script>

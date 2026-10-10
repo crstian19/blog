@@ -101,10 +101,7 @@ const currentUrl =
   <div class="absolute inset-0 bg-grid-pattern opacity-[0.02] dark:opacity-[0.05] pointer-events-none"></div>
 
   <div class="absolute bottom-0 right-1.5 sm:bottom-3.5 sm:right-3 cursor-default">
-    <div
-      class="text-[2rem] sm:text-[6rem] font-bold text-muted-foreground/[0.08] dark:text-muted-foreground/[0.12] select-none leading-none icon-[lucide--copyright]"
-    >
-    </div>
+    <div class="text-[2rem] sm:text-[6rem] font-bold text-muted-foreground/[0.08] dark:text-muted-foreground/[0.12] select-none leading-none icon-[lucide--copyright]"></div>
   </div>
 
   <div class="relative space-y-2.5 sm:space-y-3 text-xs sm:text-sm">
@@ -143,20 +140,18 @@ const currentUrl =
       <span class="icon-[lucide--file-badge] text-primary/70 mt-0.5 flex-shrink-0 text-sm sm:text-base"></span>
       <div class="flex-1 min-w-0">
         <span class="text-muted-foreground/80">License: </span>
-        {
-          config.url ? (
-            <a
-              href={config.url}
-              class="inline-flex items-center gap-1.5 font-medium text-primary/80 hover:text-primary transition-colors break-words"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <span>{config.name}</span>
-            </a>
-          ) : (
-            <span class="font-medium text-foreground/80 break-words">{config.name}</span>
-          )
-        }
+        {config.url ? (
+          <a
+            href={config.url}
+            class="inline-flex items-center gap-1.5 font-medium text-primary/80 hover:text-primary transition-colors break-words"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span>{config.name}</span>
+          </a>
+        ) : (
+          <span class="font-medium text-foreground/80 break-words">{config.name}</span>
+        )}
       </div>
     </div>
   </div>

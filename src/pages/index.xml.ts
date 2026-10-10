@@ -1,8 +1,7 @@
 import { generateRSS20 } from '~/lib/feed'
 
 export async function GET() {
-  const rssContent = await generateRSS20()
-  return new Response(rssContent, {
+  return new Response(await generateRSS20('es'), {
     headers: { 'Content-Type': 'application/rss+xml; charset=utf-8' },
   })
 }

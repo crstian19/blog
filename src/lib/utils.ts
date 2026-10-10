@@ -1,6 +1,7 @@
 import type { CollectionEntry } from 'astro:content'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import { DEFAULT_LOCALE, LOCALE_TAGS, type Locale } from '~/i18n'
 
 export function cn(...classes: ClassValue[]) {
   return twMerge(clsx(classes))
@@ -19,7 +20,7 @@ export function postsSort(posts: CollectionEntry<'posts'>[]) {
 export type DateFormat = 'default' | 'dot' | 'short' | 'iso' | 'chinese'
 
 // 日期格式化函数
-export const formatDate = (date: Date, format: DateFormat = 'default'): string => {
+export const formatDate = (date: Date, format: DateFormat = 'default', lang: Locale = DEFAULT_LOCALE): string => {
   switch (format) {
     case 'dot':
       // 2020.03.03 格式
@@ -30,7 +31,7 @@ export const formatDate = (date: Date, format: DateFormat = 'default'): string =
 
     case 'short':
       // Mar 3, 2020 格式
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString(LOCALE_TAGS[lang], {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
@@ -50,7 +51,7 @@ export const formatDate = (date: Date, format: DateFormat = 'default'): string =
     case 'default':
     default:
       // March 3, 2020 格式（默认）
-      return date.toLocaleDateString('en-US', {
+      return date.toLocaleDateString(LOCALE_TAGS[lang], {
         year: 'numeric',
         month: 'long',
         day: 'numeric',

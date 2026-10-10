@@ -26,6 +26,8 @@ interface ErrorData {
 interface Props {
   username: string
   tooltipEnabled: boolean
+  /** BCP 47 language for tooltip dates, e.g. 'es' or 'en'. */
+  locale?: string
 }
 
 // ERROR图案配置
@@ -71,14 +73,11 @@ function generateErrorContributions(): Response {
 
 // 生成默认占位数据
 function generatePlaceholderContributions(): Response {
-  const contributions = Array.from(
-    { length: 371 },
-    (_, index): Contribution => ({
-      date: new Date(Date.now() - (371 - index) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      count: 0,
-      level: 0,
-    })
-  )
+  const contributions = Array.from({ length: 371 }, (_, index): Contribution => ({
+    date: new Date(Date.now() - (371 - index) * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    count: 0,
+    level: 0,
+  }))
 
   return {
     contributions,
@@ -99,7 +98,7 @@ async function fetchContributions(username: string): Promise<Response> {
   return data as Response
 }
 
-export default function GithubContributions({ username, tooltipEnabled }: Props) {
+export default function GithubContributions({ username, tooltipEnabled, locale = 'es' }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [data, setData] = useState<Response | null>(generatePlaceholderContributions())
   const [errorVisible, setErrorVisible] = useState(true)
@@ -142,15 +141,24 @@ export default function GithubContributions({ username, tooltipEnabled }: Props)
           <div key={weekIndex} className="grid grid-rows-7 gap-1">
             {week.map((contribution, dayIndex) => {
               const { date, count } = contribution
-              const formattedDate = new Date(date).toLocaleDateString('en-US', {
+              const formattedDate = new Date(date).toLocaleDateString(locale, {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
               })
 
+              const es = locale.startsWith('es')
               const tooltipContent = `${formattedDate} — ${
-                count === 1 ? '1 contribution 💤' : count === 0 ? 'Rest day 🪴' : `${count} contributions`
+                count === 1
+                  ? es
+                    ? '1 contribución 💤'
+                    : '1 contribution 💤'
+                  : count === 0
+                    ? es
+                      ? 'Día de descanso 🪴'
+                      : 'Rest day 🪴'
+                    : `${count} ${es ? 'contribuciones' : 'contributions'}`
               }`
 
               return (

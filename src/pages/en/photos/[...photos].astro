@@ -1,0 +1,10 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { PHOTOS_CONFIG } from '~/config'
+import PhotosView from '~/views/PhotosView.astro'
+
+// Generates /photos/ only while the section is enabled.
+export const getStaticPaths = (() => (PHOTOS_CONFIG.enabled ? [{ params: { photos: undefined } }] : [])) satisfies GetStaticPaths
+---
+
+<PhotosView />

@@ -5,7 +5,6 @@ import type { ImageMetadata } from 'astro'
  * @description 包含站点标题和描述 / Contains site title and description
  * @property {string} title - 站点标题 / Site title
  * @property {string} base - 站点基础路径 / Site base path
- * @property {string} description - 站点描述 / Site description
  * @property {string} author - 作者名称 / Author name
  * @property {string} website - 网站地址 / Website address
  * @property {string} ogImage - OGP 图片地址 / OGP image address
@@ -15,8 +14,6 @@ import type { ImageMetadata } from 'astro'
 export type Site = {
   title: string
   base: string
-  description: string
-  lang: string
   author: string
   website: string
   ogImage: string
@@ -54,27 +51,14 @@ export type PostType = 'metaOnly' | 'coverSplit' | 'coverTop'
 /**
  * 文章配置接口 / Post configuration interface
  * @description 用于配置博客文章相关的全局设置 / Used to configure global settings for blog posts
- * @property {string} title - 文章标题 / Post title
- * @property {string} description - 文章描述 / Post description
- * @property {string} introduce - 文章介绍 / Post introduce
  * @property {string} author - 作者名称 / Author name
  * @property {PostCardPageConfig} homePageConfig - 首页文章展示配置 / Home page posts display configuration
  * @property {PostCardPageConfig} postPageConfig - 文章列表页展示配置 / Posts list page display configuration
  * @property {PostCardPageConfig} tagsPageConfig - 标签页文章展示配置 / Post display configuration for tags page
  * @property {boolean} ogImageUseCover - 是否使用文章封面图作为OGP图片 / Whether to use the article cover image as the OGP image
  * @property {boolean} imageDarkenInDark - 是否在暗黑模式下对图片进行暗化处理 / Whether to darken images in dark mode
- * @property {string} readMoreText - "阅读更多"按钮文本 / "Read more" button text
- * @property {string} prevPageText - 上一页按钮文本 / Previous page button text
- * @property {string} nextPageText - 下一页按钮文本 / Next page button text
- * @property {string} tocText - 目录文本 / Table of contents text
- * @property {string} backToPostsText - 返回文章列表按钮文本 / Back to posts list button text
- * @property {string} nextPostText - 下一篇文章按钮文本 / Next post button text
- * @property {string} prevPostText - 上一篇文章按钮文本 / Previous post button text
  */
 export interface PostConfig {
-  title: string
-  description: string
-  introduce: string
   author: string
   homePageConfig: PostCardPageConfig
   postPageConfig: PostCardPageConfig
@@ -82,27 +66,7 @@ export interface PostConfig {
   postType: PostType
   ogImageUseCover: boolean
   imageDarkenInDark: boolean
-  readMoreText: string
-  prevPageText: string
-  nextPageText: string
-  tocText: string
-  backToPostsText: string
-  nextPostText: string
-  prevPostText: string
-  recommendText: string
   wordCountView: boolean
-}
-
-/**
- * 标签配置接口 / Tags configuration interface
- * @property {string} title - 标签页标题 / Tags page title
- * @property {string} description - 标签页描述 / Tags page description
- * @property {string} introduce - 标签页介绍 / Tags page introduce
- */
-export interface TagsConfig {
-  title: string
-  description: string
-  introduce: string
 }
 
 export interface Skill {
@@ -148,7 +112,7 @@ export type GithubConfig = {
  * @property {string} url - 链接URL / Link URL
  */
 export type Link = {
-  name: string
+  key: import('~/i18n').TranslationKey
   url: string
 }
 
@@ -172,14 +136,6 @@ export type SocialLink = {
  * @property {string} description - 项目描述 / Project description
  * @property {string} introduce - 项目介绍 / Project introduce
  */
-export interface ProjectConfig {
-  title: string
-  description: string
-  introduce: string
-}
-
-// 项目图标类型 / Project icon type
-export type IconType = 'icon' | 'image'
 
 /**
  * 拍立得照片变体类型 / Polaroid photo variant types
@@ -223,9 +179,8 @@ export interface Photo {
  * @property {string} introduce - 页面介绍 / Page introduction
  */
 export interface PhotosConfig {
-  title: string
-  description: string
-  introduce: string
+  // Hidden for now: no nav links and no /photos/ route while false.
+  enabled: boolean
 }
 
 export type TimelineIconType = 'emoji' | 'icon' | 'color' | 'number' | 'image'
@@ -258,6 +213,11 @@ export interface GitalkConfig {
 }
 
 export interface AnalyticsConfig {
+  rybbit?: {
+    enabled: boolean
+    siteId: string
+    serverUrl: string
+  }
   vercount?: {
     enabled: boolean
   }
@@ -265,6 +225,7 @@ export interface AnalyticsConfig {
     enabled: boolean
     websiteId: string
     serverUrl: string
+    domains?: string
   }
   google?: {
     enabled: boolean

@@ -1,14 +1,19 @@
 ---
 import { ClientRouter } from 'astro:transitions'
 import { ANALYTICS_CONFIG, SITE } from '~/config'
+import { DEFAULT_LOCALE, LOCALE_TAGS, getLocale, localizePath, type Locale } from '~/i18n'
+
+const lang = getLocale(Astro.url)
 
 type Props = {
   title: string
   description: string
   image?: string
+  alternates: Partial<Record<Locale, string>>
 }
 
-const { title, description, image }: Props = Astro.props
+const { title, description, image, alternates }: Props = Astro.props
+const hreflangs = Object.entries(alternates) as [Locale, string][]
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site)
 const ogImage = new URL(image || SITE.ogImage, Astro.url)
@@ -41,7 +46,14 @@ const ogImage = new URL(image || SITE.ogImage, Astro.url)
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
 {/* RSS Feed Link */}
-<link rel="alternate" type="application/rss+xml" title={SITE.title} href={new URL('/rss.xml', Astro.site).href} />
+<link rel="alternate" type="application/rss+xml" title={SITE.title} href={new URL(localizePath(lang, '/index.xml'), Astro.site).href} />
+
+<!-- Translations of this page -->
+{hreflangs.length > 1 &&
+  hreflangs.map(([locale, href]) => <link rel="alternate" hreflang={locale} href={new URL(href, Astro.site).href} />)}
+{hreflangs.length > 1 && alternates[DEFAULT_LOCALE] && (
+  <link rel="alternate" hreflang="x-default" href={new URL(alternates[DEFAULT_LOCALE], Astro.site).href} />
+)}
 
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 
@@ -60,6 +72,7 @@ const ogImage = new URL(image || SITE.ogImage, Astro.url)
 
 <!-- Open Graph & Facebook -->
 <meta property="og:type" content="website" />
+<meta property="og:locale" content={LOCALE_TAGS[lang].replace('-', '_')} />
 <meta property="og:url" content={Astro.url} />
 <meta property="og:title" content={title} />
 <meta property="og:site_name" content={SITE.title} />
@@ -73,34 +86,31 @@ const ogImage = new URL(image || SITE.ogImage, Astro.url)
 <meta property="twitter:description" content={description} />
 <meta property="twitter:image" content={ogImage} />
 
-
-{
-  ANALYTICS_CONFIG.umami?.enabled && (
-    <script
-      is:inline
-      defer
-      src={ANALYTICS_CONFIG.umami.serverUrl}
-      data-website-id={ANALYTICS_CONFIG.umami.websiteId}
-    ></script>
-  )
-}
-{
-  ANALYTICS_CONFIG.vercount?.enabled && (
-    <script is:inline defer src="https://events.vercount.one/js" data-astro-rerun></script>
-  )
-}
-{
-  ANALYTICS_CONFIG.google?.enabled && (
-    <>
-      <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_CONFIG.google.id}`}></script>
-      <script is:inline define:vars={{ id: ANALYTICS_CONFIG.google.id }}>
-        window.dataLayer = window.dataLayer || [];
-        function gtag(){dataLayer.push(arguments);}
-        gtag('js', new Date());
-        gtag('config', id);
-      </script>
-    </>
-  )
-}
+{ANALYTICS_CONFIG.umami?.enabled && (
+  <script
+    is:inline
+    defer
+    src={ANALYTICS_CONFIG.umami.serverUrl}
+    data-website-id={ANALYTICS_CONFIG.umami.websiteId}
+    data-domains={ANALYTICS_CONFIG.umami.domains}
+  ></script>
+)}
+{ANALYTICS_CONFIG.rybbit?.enabled && (
+  <script is:inline defer src={ANALYTICS_CONFIG.rybbit.serverUrl} data-site-id={ANALYTICS_CONFIG.rybbit.siteId}></script>
+)}
+{ANALYTICS_CONFIG.vercount?.enabled && <script is:inline defer src="https://events.vercount.one/js" data-astro-rerun></script>}
+{ANALYTICS_CONFIG.google?.enabled && (
+  <>
+    <script is:inline async src={`https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_CONFIG.google.id}`}></script>
+    <script is:inline define:vars={{ id: ANALYTICS_CONFIG.google.id }}>
+      window.dataLayer = window.dataLayer || []
+      function gtag() {
+        dataLayer.push(arguments)
+      }
+      gtag('js', new Date())
+      gtag('config', id)
+    </script>
+  </>
+)}
 
 <ClientRouter fallback="swap" />

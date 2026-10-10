@@ -5,93 +5,55 @@ import type {
   Link,
   PhotosConfig,
   PostConfig,
-  ProjectConfig,
   Site,
   SkillsShowcaseConfig,
   SocialLink,
-  TagsConfig,
 } from '~/types'
 
-//--- Readme Page Config ---
+// Texts shown to readers live in src/i18n.ts, one dictionary per locale.
+
 export const SITE: Site = {
-  title: 'Litos',
-  description:
-    'Litos is a modern blogging theme built on Astro.js, designed for developers. It supports multiple post layouts, photo displays, project displays, and more, providing an elegant user experience and powerful customization capabilities.',
-  website: 'https://litos.vercel.app/',
-  lang: 'en',
+  title: "Crstian's Blog",
+  website: 'https://blog.crstian.me/',
   base: '/',
-  author: 'Dnzzk2',
+  author: 'Crstian',
   ogImage: '/og-image.webp',
   transition: false,
   themeAnimation: true,
 }
 
-export const HEADER_LINKS: Link[] = [
-  {
-    name: 'Posts',
-    url: '/posts',
-  },
-  {
-    name: 'Projects',
-    url: '/projects',
-  },
-  {
-    name: 'Photos',
-    url: '/photos',
-  },
-]
+export const PHOTOS_CONFIG: PhotosConfig = {
+  enabled: false,
+}
+
+const PHOTOS_LINK: Link[] = PHOTOS_CONFIG.enabled ? [{ key: 'nav.photos', url: '/photos/' }] : []
+
+// URLs are locale-neutral; components prefix them with localizePath().
+export const HEADER_LINKS: Link[] = [{ key: 'nav.posts', url: '/post/' }, { key: 'nav.tags', url: '/tags/' }, ...PHOTOS_LINK]
 
 export const FOOTER_LINKS: Link[] = [
-  {
-    name: 'Readme',
-    url: '/',
-  },
-  {
-    name: 'Posts',
-    url: '/posts',
-  },
-  {
-    name: 'Projects',
-    url: '/projects',
-  },
-  {
-    name: 'Tags',
-    url: '/tags',
-  },
-  {
-    name: 'Photos',
-    url: '/photos',
-  },
+  { key: 'nav.home', url: '/' },
+  { key: 'nav.posts', url: '/post/' },
+  { key: 'nav.tags', url: '/tags/' },
+  ...PHOTOS_LINK,
 ]
 
 // get icon https://icon-sets.iconify.design/
 export const SOCIAL_LINKS: SocialLink[] = [
   {
     name: 'github',
-    url: 'https://github.com/Dnzzk2',
+    url: 'https://github.com/crstian19',
     icon: 'icon-[ri--github-fill]',
-    count: 20,
   },
   {
     name: 'twitter',
-    url: 'https://x.com/yourname',
+    url: 'https://x.com/crstiax',
     icon: 'icon-[ri--twitter-x-fill]',
-  },
-  {
-    name: 'bilibili',
-    url: 'https://space.bilibili.com/yourSpaceId',
-    icon: 'icon-[ri--bilibili-fill]',
   },
 ]
 
 /**
  * SkillsShowcase 配置接口 / SkillsShowcase configuration type
- * @property {boolean} SKILLS_ENABLED  - 是否启用SkillsShowcase功能 / Whether to enable SkillsShowcase features
- * @property {Object} SKILLS_DATA - 技能展示数据 / Skills showcase data
- * @property {string} SKILLS_DATA.direction - 技能展示方向 / Skills showcase direction
- * @property {Object} SKILLS_DATA.skills - 技能展示数据 / Skills showcase data
- * @property {string} SKILLS_DATA.skills.icon - 技能图标 / Skills icon
- * @property {string} SKILLS_DATA.skills.name - 技能名称 / Skills name
  * get icon https://icon-sets.iconify.design/
  */
 export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
@@ -100,106 +62,34 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
     {
       direction: 'left',
       skills: [
-        {
-          name: 'JavaScript',
-          icon: 'icon-[skill-icons--javascript]',
-          url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript',
-        },
-        {
-          name: 'CSS',
-          icon: 'icon-[skill-icons--css]',
-          url: 'https://developer.mozilla.org/en-US/docs/Web/CSS',
-        },
-        {
-          name: 'HTML',
-          icon: 'icon-[skill-icons--html]',
-          url: 'https://developer.mozilla.org/en-US/docs/Web/HTML',
-        },
-        {
-          name: 'TypeScript',
-          icon: 'icon-[skill-icons--typescript]',
-          url: 'https://www.typescriptlang.org/',
-        },
-        {
-          name: 'Vue',
-          icon: 'icon-[skill-icons--vuejs-dark]',
-          url: 'https://vuejs.org/',
-        },
-        {
-          name: 'Sass',
-          icon: 'icon-[skill-icons--sass]',
-          url: 'https://sass-lang.com/',
-        },
+        { name: 'Kubernetes', icon: 'icon-[skill-icons--kubernetes]', url: 'https://kubernetes.io/' },
+        { name: 'Argo CD', icon: 'icon-[devicon--argocd]', url: 'https://argo-cd.readthedocs.io/' },
+        { name: 'Helm', icon: 'icon-[devicon--helm]', url: 'https://helm.sh/' },
+        { name: 'Docker', icon: 'icon-[skill-icons--docker]', url: 'https://www.docker.com/' },
+        { name: 'Terraform', icon: 'icon-[skill-icons--terraform-dark]', url: 'https://www.terraform.io/' },
+        { name: 'AWS', icon: 'icon-[skill-icons--aws-dark]', url: 'https://aws.amazon.com/' },
       ],
     },
     {
       direction: 'right',
       skills: [
-        {
-          name: 'Astro',
-          icon: 'icon-[skill-icons--astro]',
-          url: 'https://astro.build/',
-        },
-        {
-          name: 'Node.js',
-          icon: 'icon-[skill-icons--nodejs-dark]',
-          url: 'https://nodejs.org/',
-        },
-        {
-          name: 'React',
-          icon: 'icon-[skill-icons--react-dark]',
-          url: 'https://react.dev/',
-        },
-        {
-          name: 'Next.js',
-          icon: 'icon-[skill-icons--nextjs-dark]',
-          url: 'https://nextjs.org/',
-        },
-        {
-          name: 'Tailwind CSS',
-          icon: 'icon-[skill-icons--tailwindcss-dark]',
-          url: 'https://tailwindcss.com/',
-        },
-        {
-          name: 'Vite',
-          icon: 'icon-[skill-icons--vite-dark]',
-          url: 'https://vitejs.dev/',
-        },
+        { name: 'Prometheus', icon: 'icon-[skill-icons--prometheus]', url: 'https://prometheus.io/' },
+        { name: 'Grafana', icon: 'icon-[skill-icons--grafana-dark]', url: 'https://grafana.com/' },
+        { name: 'Go', icon: 'icon-[skill-icons--golang]', url: 'https://go.dev/' },
+        { name: 'Astro', icon: 'icon-[skill-icons--astro]', url: 'https://astro.build/' },
+        { name: 'Svelte', icon: 'icon-[skill-icons--svelte]', url: 'https://svelte.dev/' },
+        { name: 'Cloudflare', icon: 'icon-[skill-icons--cloudflare-dark]', url: 'https://www.cloudflare.com/' },
       ],
     },
     {
       direction: 'left',
       skills: [
-        {
-          name: 'Ubuntu',
-          icon: 'icon-[skill-icons--ubuntu-dark]',
-          url: 'https://ubuntu.com/',
-        },
-        {
-          name: 'Git',
-          icon: 'icon-[skill-icons--git]',
-          url: 'https://git-scm.com/',
-        },
-        {
-          name: 'MongoDB',
-          icon: 'icon-[skill-icons--mongodb]',
-          url: 'https://www.mongodb.com/',
-        },
-        {
-          name: 'Vercel',
-          icon: 'icon-[skill-icons--vercel-dark]',
-          url: 'https://vercel.com/',
-        },
-        {
-          name: 'VS Code',
-          icon: 'icon-[skill-icons--vscode-dark]',
-          url: 'https://code.visualstudio.com/',
-        },
-        {
-          name: 'Obsidian',
-          icon: 'icon-[skill-icons--obsidian-dark]',
-          url: 'https://obsidian.md/',
-        },
+        { name: 'Arch Linux', icon: 'icon-[skill-icons--arch-dark]', url: 'https://archlinux.org/' },
+        { name: 'NixOS', icon: 'icon-[devicon--nixos]', url: 'https://nixos.org/' },
+        { name: 'Traefik', icon: 'icon-[devicon--traefikproxy]', url: 'https://traefik.io/' },
+        { name: 'Git', icon: 'icon-[skill-icons--git]', url: 'https://git-scm.com/' },
+        { name: 'Neovim', icon: 'icon-[skill-icons--neovim-dark]', url: 'https://neovim.io/' },
+        { name: 'Obsidian', icon: 'icon-[skill-icons--obsidian-dark]', url: 'https://obsidian.md/' },
       ],
     },
   ],
@@ -212,21 +102,17 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
  * @property {string} GITHUB_USERNAME - GITHUB用户名 / GitHub username
  * @property {boolean} TOOLTIP_ENABLED - 是否开启Tooltip功能 / Whether to enable Github Tooltip features
  */
-
 export const GITHUB_CONFIG: GithubConfig = {
   ENABLED: true,
-  GITHUB_USERNAME: 'Dnzzk2',
+  GITHUB_USERNAME: 'crstian19',
   TOOLTIP_ENABLED: true,
 }
 
 //--- Posts Page Config ---
 export const POSTS_CONFIG: PostConfig = {
-  title: 'Posts',
-  description: 'Posts by Dnzzk2',
-  introduce: 'Here, I will share the usage instructions for this theme to help you quickly use it.',
-  author: 'Dnzzk2',
+  author: 'Crstian',
   homePageConfig: {
-    size: 2,
+    size: 3,
     type: 'compact',
   },
   postPageConfig: {
@@ -238,63 +124,31 @@ export const POSTS_CONFIG: PostConfig = {
     size: 10,
     type: 'time-line',
   },
-  ogImageUseCover: false,
+  ogImageUseCover: true,
   postType: 'metaOnly',
   imageDarkenInDark: true,
-  readMoreText: 'Read more',
-  prevPageText: 'Previous',
-  nextPageText: 'Next',
-  tocText: 'On this page',
-  backToPostsText: 'Back to Posts',
-  nextPostText: 'Next Post',
-  prevPostText: 'Previous Post',
-  recommendText: 'REC',
   wordCountView: true,
 }
 
+// Gitalk needs a GitHub OAuth app; disabled until one exists.
 export const COMMENT_CONFIG: CommentConfig = {
-  enabled: true,
-  system: 'gitalk',
-  gitalk: {
-    clientID: import.meta.env.PUBLIC_GITHUB_CLIENT_ID,
-    clientSecret: import.meta.env.PUBLIC_GITHUB_CLIENT_SECRET,
-    repo: 'gitalk-comment',
-    owner: 'Dnzzk2',
-    admin: ['Dnzzk2'],
-    language: 'en-US',
-    perPage: 5,
-    pagerDirection: 'last',
-    createIssueManually: false,
-    distractionFreeMode: false,
-    enableHotKey: true,
-  },
-}
-
-export const TAGS_CONFIG: TagsConfig = {
-  title: 'Tags',
-  description: 'All tags of Posts',
-  introduce: 'All the tags for posts are here, you can click to filter them.',
-}
-
-export const PROJECTS_CONFIG: ProjectConfig = {
-  title: 'Projects',
-  description: 'The examples of my projects.',
-  introduce: 'The examples of my projects.',
-}
-
-export const PHOTOS_CONFIG: PhotosConfig = {
-  title: 'Photos',
-  description: 'Here I will record some photos taken in daily life.',
-  introduce: 'Here I will record some photos taken in daily life.',
+  enabled: false,
+  system: 'none',
 }
 
 export const ANALYTICS_CONFIG: AnalyticsConfig = {
   vercount: {
-    enabled: true,
+    enabled: false,
   },
   umami: {
-    enabled: false,
-    websiteId: 'Your websiteId in umami',
-    serverUrl: 'https://cloud.umami.is/script.js',
+    enabled: true,
+    websiteId: '1df64f67-c72f-401c-89c0-02443ca455c6',
+    serverUrl: 'https://umami.crstian.me/script.js',
+    domains: 'blog.crstian.me',
+  },
+  rybbit: {
+    enabled: true,
+    siteId: '7906ed64d877',
+    serverUrl: 'https://app.rybbit.io/api/script.js',
   },
 }

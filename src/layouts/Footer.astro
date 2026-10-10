@@ -3,8 +3,12 @@ import { FOOTER_LINKS, SITE } from '~/config'
 import SectionDivider from '~/components/base/SectionDivider.astro'
 import ThemeToggle from '~/components/theme/ThemeToggle'
 import FooterLink from '~/components/base/FooterLink.astro'
+import { getLocale, localizePath, useTranslations } from '~/i18n'
 
-const START_YEAR = 2025
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+
+const START_YEAR = 2019
 const currentYear = new Date().getFullYear()
 const yearDisplay = currentYear > START_YEAR ? `${START_YEAR} - ${currentYear}` : `${START_YEAR}`
 ---
@@ -13,22 +17,24 @@ const yearDisplay = currentYear > START_YEAR ? `${START_YEAR} - ${currentYear}` 
 <footer>
   <div class="py-4 flex-none border-x border-border/50 global-layout-width mx-auto">
     <div class="pb-8">
-      <div
-        class="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-1 text-sm font-medium text-muted-foreground pb-4 px-6 sm:px-8 border-b border-border/50"
-      >
-        {FOOTER_LINKS.map((link) => <FooterLink href={link.url}>{link.name}</FooterLink>)}
+      <div class="flex flex-wrap gap-x-3 sm:gap-x-6 gap-y-1 text-sm font-medium text-muted-foreground pb-4 px-6 sm:px-8 border-b border-border/50">
+        {FOOTER_LINKS.map((link) => (
+          <FooterLink href={localizePath(lang, link.url)}>{t(link.key)}</FooterLink>
+        ))}
       </div>
       <div class="text-sm text-muted-foreground px-6 sm:px-8 py-4">
         <div class="items-center flex flex-wrap gap-4 font-medium">
-          <div>© {yearDisplay} crafted by {SITE.author}.</div>
+          <div>
+            © {yearDisplay} {t('footer.craftedBy')} {SITE.author}.
+          </div>
           <div class="grow"></div>
           <div class="flex gap-2 items-center" transition:persist="footer-theme-toggle">
             <a
-              href="https://github.com/Dnzzk2/Litos"
+              href="https://github.com/crstian19/My-blog"
               target="_blank"
               class="inline-flex items-center justify-center hover:scale-105"
-              aria-label="GitHub Source"
-              title="GitHub Source"
+              aria-label={t('footer.source')}
+              title={t('footer.source')}
             >
               <span class="icon-[mdi--github] size-5"></span>
             </a>

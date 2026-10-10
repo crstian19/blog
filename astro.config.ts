@@ -12,6 +12,8 @@ import { SITE } from './src/config'
 export default defineConfig({
   site: SITE.website,
   base: SITE.base,
+  // Hugo published every URL with a trailing slash; keep them identical.
+  trailingSlash: 'always',
   prefetch: {
     prefetchAll: true,
     defaultStrategy: 'viewport',
@@ -27,5 +29,11 @@ export default defineConfig({
     // Astro 7 defaults to Sätteri; keep the unified pipeline for the remark/rehype plugins.
     processor: unified({ remarkPlugins, rehypePlugins }),
   },
-  integrations: [expressiveCode(), mdx(), react(), sitemap(), robotsTxt()],
+  integrations: [
+    expressiveCode(),
+    mdx(),
+    react(),
+    sitemap({ i18n: { defaultLocale: 'es', locales: { es: 'es-ES', en: 'en-US' } } }),
+    robotsTxt(),
+  ],
 })

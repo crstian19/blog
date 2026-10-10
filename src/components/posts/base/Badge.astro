@@ -1,5 +1,9 @@
 ---
 import { cn } from '~/lib/utils'
+import { getLocale } from '~/i18n'
+import { getTagUrl } from '~/lib/data'
+
+const lang = getLocale(Astro.url)
 
 interface Props {
   type: 'tag' | 'recommend'
@@ -38,33 +42,31 @@ const iconConfig = {
 const iconClass = iconConfig[type]
 ---
 
-{
-  type === 'tag' ? (
-    <a
-      href={`/tags/${content}`}
-      aria-label={`View posts tagged with ${content}`}
-      class={cn(
-        'inline-flex items-center font-medium  transition-colors duration-200 select-none',
-        sizeClasses[size],
-        variantClasses[finalVariant],
-        className
-      )}
-    >
-      {showIcon && <span class={iconClass} />}
-      {content}
-    </a>
-  ) : (
-    <span
-      class={cn(
-        'inline-flex items-center font-medium transition-colors duration-200 select-none',
-        sizeClasses[size],
-        variantClasses[finalVariant],
-        className
-      )}
-      title="Recommended post"
-    >
-      {showIcon && <span class={iconClass} />}
-      <span class="font-semibold tracking-wide">{content}</span>
-    </span>
-  )
-}
+{type === 'tag' ? (
+  <a
+    href={getTagUrl(lang, content)}
+    aria-label={`#${content}`}
+    class={cn(
+      'inline-flex items-center font-medium  transition-colors duration-200 select-none',
+      sizeClasses[size],
+      variantClasses[finalVariant],
+      className
+    )}
+  >
+    {showIcon && <span class={iconClass} />}
+    {content}
+  </a>
+) : (
+  <span
+    class={cn(
+      'inline-flex items-center font-medium transition-colors duration-200 select-none',
+      sizeClasses[size],
+      variantClasses[finalVariant],
+      className
+    )}
+    title="Recommended post"
+  >
+    {showIcon && <span class={iconClass} />}
+    <span class="font-semibold tracking-wide">{content}</span>
+  </span>
+)}
