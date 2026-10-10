@@ -1,4 +1,5 @@
 import { defineConfig } from 'astro/config'
+import { unified } from '@astrojs/markdown-remark'
 import tailwindcss from '@tailwindcss/vite'
 import react from '@astrojs/react'
 import mdx from '@astrojs/mdx'
@@ -23,8 +24,8 @@ export default defineConfig({
   },
   markdown: {
     syntaxHighlight: false,
-    remarkPlugins,
-    rehypePlugins,
+    // Astro 7 defaults to Sätteri; keep the unified pipeline for the remark/rehype plugins.
+    processor: unified({ remarkPlugins, rehypePlugins }),
   },
   integrations: [expressiveCode(), mdx(), react(), sitemap(), robotsTxt()],
 })
