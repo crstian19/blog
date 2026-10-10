@@ -1,0 +1,113 @@
+---
+import { cn } from '~/lib/utils'
+import type { SkillData, Skill } from '~/types'
+
+interface Props {
+  skillsData: SkillData[]
+}
+
+const { skillsData }: Props = Astro.props
+
+const duplicateSkills = (skills: Skill[]) => [...skills, ...skills, ...skills, ...skills]
+---
+
+<div class="skills-container relative isolate py-2 px-2 max-md:px-0 perspective-[1500px]">
+  {skillsData.map((row: SkillData) => {
+    const duplicatedSkills = duplicateSkills(row.skills)
+    return (
+      <div class="relative w-full overflow-hidden my-4 group content-visibility-auto">
+        <div
+          class={cn(
+            'flex w-max will-change-transform',
+            row.direction === 'right' ? 'animate-[scroll-reverse_30s_linear_infinite]' : 'animate-[scroll_30s_linear_infinite]',
+            'group-hover:[animation-play-state:paused]'
+          )}
+          style="transform: translateZ(0);"
+        >
+          {duplicatedSkills.map((skill) => {
+            const Tag = skill.url ? 'a' : 'div'
+            const props = skill.url ? { href: skill.url, target: '_blank', rel: 'noopener noreferrer' } : {}
+            return (
+              <div class="skill-card mx-2">
+                <Tag class="skill-inner group flex items-center gap-2 px-3 py-1.5 whitespace-nowrap transition-all duration-200" {...props}>
+                  <svg class="w-5 h-5 shrink-0" aria-hidden="true">
+                    <use href={`/stack.svg#${skill.icon}`} />
+                  </svg>
+                  <span class="font-sans text-sm font-medium">{skill.name}</span>
+                </Tag>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  })}
+
+  <div class="skills-blur skills-blur-left pointer-events-none absolute left-0 top-0 w-[10%] h-full z-10"></div>
+  <div class="skills-blur skills-blur-right pointer-events-none absolute right-0 top-0 w-[10%] h-full z-10"></div>
+</div>
+
+<style is:global>
+  @keyframes scroll {
+    0% {
+      transform: translate3d(0, 0, 0);
+    }
+    100% {
+      transform: translate3d(-25%, 0, 0);
+    }
+  }
+
+  @keyframes scroll-reverse {
+    0% {
+      transform: translate3d(-25%, 0, 0);
+    }
+    100% {
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /* Pill chips in the style of the crstian.me stack cards. */
+  .skill-card {
+    position: relative;
+    border-radius: 9999px;
+    /* 性能优化 */
+    contain: layout style;
+    transform: translateZ(0);
+  }
+
+  .skill-inner {
+    position: relative;
+    border-radius: 9999px;
+    border: 1px solid oklch(var(--foreground) / 0.1);
+    background: oklch(var(--foreground) / 0.03);
+    color: oklch(var(--muted-foreground));
+    z-index: 1;
+  }
+
+  .skill-inner:hover {
+    border-color: oklch(var(--foreground) / 0.3);
+    background: oklch(var(--foreground) / 0.08);
+    color: oklch(var(--foreground));
+    box-shadow: 0 0 24px -6px oklch(var(--brand) / 0.7);
+  }
+
+  .skills-container {
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  }
+
+  .skills-blur {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+
+  .skills-blur-left {
+    -webkit-mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+    mask-image: linear-gradient(to right, #000 0%, transparent 100%);
+  }
+
+  .skills-blur-right {
+    -webkit-mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+    mask-image: linear-gradient(to left, #000 0%, transparent 100%);
+  }
+</style>

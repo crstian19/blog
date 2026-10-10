@@ -1,0 +1,203 @@
+---
+import { Image } from 'astro:assets'
+import { SITE } from '~/config'
+import { cn } from '~/lib/utils'
+import base from '~/assets/avatar/base.png'
+
+interface Props {
+  /** Rendered height in CSS pixels; the width follows the drawing's aspect ratio. */
+  height: number
+  class?: string
+}
+
+const { height, class: className } = Astro.props
+const width = Math.round((height * base.width) / base.height)
+
+// The eyes are drawn as vectors so they stay crisp at any size. Each one is a
+// pill measured on the original drawing, in the coordinates of base.png at
+// full size (945x1109): centre, length, width and tilt in degrees.
+const VIEWBOX = { width: 945, height: 1109 }
+const EYE_COLOR = '#19181b'
+const eyes = [
+  { cx: 310.8, cy: 488.2, length: 178, width: 80, rotate: 20.6 },
+  { cx: 657, cy: 615.4, length: 180, width: 80, rotate: 20.9 },
+]
+---
+
+<span class={cn('relative inline-block select-none', className)} style={`width:${width}px;height:${height}px`} data-avatar>
+  <Image src={base} {width} {height} alt={SITE.author} class="size-full" densities={[1, 2, 3]} loading="eager" />
+  <svg viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} class="absolute inset-0 size-full overflow-visible" aria-hidden="true">
+    {eyes.map((eye) => (
+      <g data-avatar-eye>
+        <g transform={`rotate(${eye.rotate} ${eye.cx} ${eye.cy})`}>
+          <rect
+            data-avatar-blink
+            class="avatar-blink"
+            x={eye.cx - eye.width / 2}
+            y={eye.cy - eye.length / 2}
+            width={eye.width}
+            height={eye.length}
+            rx={eye.width / 2}
+            fill={EYE_COLOR}
+          />
+        </g>
+      </g>
+    ))}
+  </svg>
+</span>
+
+<style>
+  /* Blinks squash each eye along its own length, so the slanted pill closes into a slit. */
+  .avatar-blink {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  .avatar-blink.blinking {
+    animation: avatar-blink 170ms ease-in-out;
+  }
+  @keyframes avatar-blink {
+    45%,
+    55% {
+      scale: 1 0.08;
+    }
+  }
+</style>
+
+<script>
+  // Gaze limits in the drawing's units (an eye is 80 wide): how far each eye
+  // can shift from its rest position in each direction.
+  const REACH = { left: 28, right: 28, up: 34, down: 26 }
+  // Screen distance (px) from the eye at which the shift reaches its limit.
+  // Up is short because the logo sits at the top of the page: the cursor can
+  // rarely get more than a few dozen pixels above it.
+  const FULL_AT = { x: 240, up: 30, down: 220 }
+  // How fast the eyes catch up with their target, in ms (smaller is snappier).
+  const FOLLOW_MS = 55
+  const SACCADE_MS = 28
+  // With no pointer movement for this long, the eyes start looking around.
+  const IDLE_AFTER_MS = 2500
+
+  type Point = { x: number; y: number }
+
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const offsets = new WeakMap<SVGGElement, Point>()
+  let pointer: Point | null = null
+  let lastPointerMove = 0
+  let idleGaze: Point = { x: 0, y: 0 }
+  let frame = 0
+  let last = 0
+
+  /** Maps a vector (−1…1 on each axis, inside the unit circle) to an eye offset. */
+  function toOffset(v: Point): Point {
+    return {
+      x: v.x * (v.x < 0 ? REACH.left : REACH.right),
+      y: v.y * (v.y < 0 ? REACH.up : REACH.down),
+    }
+  }
+
+  function pointerTarget(eye: SVGGElement, current: Point): Point {
+    // Measure the eye at rest, so its own offset does not feed back into the target.
+    const rect = eye.getBoundingClientRect()
+    const scale = rect.width / (eye.getBBox().width || 1)
+    const dx = pointer!.x - (rect.left + rect.width / 2 - current.x * scale)
+    const dy = pointer!.y - (rect.top + rect.height / 2 - current.y * scale)
+    const v = { x: dx / FULL_AT.x, y: dy / (dy < 0 ? FULL_AT.up : FULL_AT.down) }
+    const length = Math.hypot(v.x, v.y)
+    return toOffset(length > 1 ? { x: v.x / length, y: v.y / length } : v)
+  }
+
+  function isIdle(now: number) {
+    return !pointer || now - lastPointerMove > IDLE_AFTER_MS
+  }
+
+  // Runs every display frame (60, 120, 144 Hz…) while the eyes are moving, and
+  // stops once they settle. Frame-rate independent: the easing uses elapsed time.
+  function tick(now: number) {
+    const dt = last ? Math.min(now - last, 100) : 16
+    last = now
+    const idle = isIdle(performance.now())
+    const ease = 1 - Math.exp(-dt / (idle ? SACCADE_MS : FOLLOW_MS))
+    let moving = false
+
+    for (const eye of document.querySelectorAll<SVGGElement>('[data-avatar-eye]')) {
+      const current = offsets.get(eye) ?? { x: 0, y: 0 }
+      const target = idle ? toOffset(idleGaze) : pointerTarget(eye, current)
+      current.x += (target.x - current.x) * ease
+      current.y += (target.y - current.y) * ease
+      offsets.set(eye, current)
+      // Inside the SVG, px in a CSS transform are user units of the viewBox.
+      eye.style.transform = `translate(${current.x}px, ${current.y}px)`
+      if (Math.abs(target.x - current.x) > 0.05 || Math.abs(target.y - current.y) > 0.05) moving = true
+    }
+
+    frame = moving ? requestAnimationFrame(tick) : 0
+    if (!moving) last = 0
+  }
+
+  function wake() {
+    if (!frame) frame = requestAnimationFrame(tick)
+  }
+
+  // Idle gaze: quick jumps to a random point, a pause, and now and then back to
+  // the centre, which is how eyes move when they are not following anything.
+  function scheduleGlance() {
+    setTimeout(
+      () => {
+        if (!document.hidden && isIdle(performance.now())) {
+          if (Math.random() < 0.3) {
+            idleGaze = { x: 0, y: 0 }
+          } else {
+            const angle = Math.random() * Math.PI * 2
+            const amount = 0.45 + Math.random() * 0.55
+            idleGaze = { x: Math.cos(angle) * amount, y: Math.sin(angle) * amount }
+          }
+          wake()
+        }
+        scheduleGlance()
+      },
+      900 + Math.random() * 2400
+    )
+  }
+
+  function blink() {
+    for (const eye of document.querySelectorAll<SVGRectElement>('[data-avatar-blink]')) {
+      eye.classList.remove('blinking')
+      // Reading layout restarts the animation when the class is added back.
+      void eye.getBoundingClientRect()
+      eye.classList.add('blinking')
+      eye.addEventListener('animationend', () => eye.classList.remove('blinking'), { once: true })
+    }
+  }
+
+  // Blink every 2.5–6.5 s, sometimes twice in a row, like a person does.
+  function scheduleBlink() {
+    setTimeout(
+      () => {
+        if (!document.hidden) {
+          blink()
+          if (Math.random() < 0.2) setTimeout(blink, 260)
+        }
+        scheduleBlink()
+      },
+      2500 + Math.random() * 4000
+    )
+  }
+
+  if (!reducedMotion) {
+    window.addEventListener(
+      'pointermove',
+      (event) => {
+        pointer = { x: event.clientX, y: event.clientY }
+        lastPointerMove = performance.now()
+        wake()
+      },
+      { passive: true }
+    )
+    // Scrolling moves the eyes relative to a still cursor.
+    window.addEventListener('scroll', wake, { passive: true })
+    // New pages from the client router bring fresh eyes; point them at the cursor too.
+    document.addEventListener('astro:page-load', wake)
+    scheduleGlance()
+    scheduleBlink()
+  }
+</script>

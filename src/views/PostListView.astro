@@ -1,0 +1,31 @@
+---
+import type { Page } from 'astro'
+import type { CollectionEntry } from 'astro:content'
+import { POSTS_CONFIG } from '~/config'
+import { getLocale, localizePath, useTranslations } from '~/i18n'
+import Layout from '~/layouts/Layout.astro'
+import Pagination from '~/components/base/Pagination.astro'
+import List from '~/components/posts/card/List.astro'
+import PageTitle from '~/components/base/PageTitle.astro'
+
+interface Props {
+  page: Page<CollectionEntry<'posts'>>
+}
+
+const { page } = Astro.props
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+const title = t('posts.title')
+// Later pages may not exist in the other locale, so they point to its first page.
+const alternates = page.currentPage === 1 ? undefined : { [lang]: Astro.url.pathname }
+---
+
+<Layout {title} description={t('posts.description')} {alternates}>
+  <div class="relative z-[1] py-8 pb-10 px-6 sm:px-8">
+    <PageTitle {title} introduce={t('posts.introduce')} />
+    <div class="mt-12 fade-up">
+      <List posts={page.data} type={POSTS_CONFIG.postPageConfig.type} coverLayout={POSTS_CONFIG.postPageConfig?.coverLayout} />
+    </div>
+    <Pagination {page} baseUrl={localizePath(lang, '/post').replace(/\/$/, '')} />
+  </div>
+</Layout>

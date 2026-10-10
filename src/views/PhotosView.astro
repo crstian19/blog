@@ -1,0 +1,25 @@
+---
+import { getLocale, useTranslations } from '~/i18n'
+import Layout from '~/layouts/Layout.astro'
+import PhotoTimeline from '~/components/photos/PhotoTimeline.astro'
+import PageTitle from '~/components/base/PageTitle.astro'
+import { PhotosList } from '~/lib/photos'
+
+const t = useTranslations(getLocale(Astro.url))
+const title = t('photos.title')
+---
+
+<Layout {title} description={t('photos.description')} disableViewTransition>
+  <div class="relative z-[1] py-8 pb-10 px-6 sm:px-8">
+    <PageTitle {title} introduce={t('photos.introduce')} />
+    <div class="mt-12">
+      {PhotosList.length > 0 ? (
+        <PhotoTimeline photoData={PhotosList} />
+      ) : (
+        <div class="text-muted-foreground mb-4">
+          <p class="text-sm">{t('photos.empty')}</p>
+        </div>
+      )}
+    </div>
+  </div>
+</Layout>

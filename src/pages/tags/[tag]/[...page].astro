@@ -1,0 +1,9 @@
+---
+import type { GetStaticPaths } from 'astro'
+import { tagPaths } from '~/lib/routes'
+import TagView from '~/views/TagView.astro'
+
+export const getStaticPaths = (({ paginate }) => tagPaths('es', paginate)) satisfies GetStaticPaths
+---
+
+<TagView {...Astro.props} />

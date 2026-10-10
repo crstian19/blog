@@ -1,0 +1,28 @@
+---
+import { COMMENT_CONFIG } from '~/config'
+import { getLocale, useTranslations } from '~/i18n'
+import Gitalk from './Gitalk.astro'
+import Giscus from './Giscus.astro'
+
+interface Props {
+  id: string
+  title: string
+  /** Key shared by a post and its translations. */
+  term: string
+}
+
+const { id, title, term } = Astro.props
+const t = useTranslations(getLocale(Astro.url))
+const { enabled, system } = COMMENT_CONFIG
+
+if (!enabled || system === 'none') {
+  return null
+}
+---
+
+<div class="comment-container">
+  <h3 class="text-xl font-semibold mb-6 text-[var(--color-heading)]">{t('posts.comments')}</h3>
+
+  {system === 'giscus' && <Giscus {term} />}
+  {system === 'gitalk' && <Gitalk {id} {title} />}
+</div>

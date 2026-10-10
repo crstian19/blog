@@ -1,0 +1,61 @@
+---
+import { HEADER_LINKS } from '~/config'
+import ThemeToggle from '~/components/theme/ThemeToggle'
+import HeaderGradient from '~/components/theme/HeaderGradient.astro'
+import SectionDivider from '~/components/base/SectionDivider.astro'
+import HeaderLink from '~/components/base/HeaderLink.astro'
+import SearchSwitch from '~/components/base/SearchSwitch.astro'
+import LanguagePicker from '~/components/base/LanguagePicker.astro'
+import { getLocale, localizePath, useTranslations, type Locale } from '~/i18n'
+import Avatar from '~/components/base/Avatar.astro'
+
+interface Props {
+  alternates: Partial<Record<Locale, string>>
+}
+
+const { alternates } = Astro.props
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+---
+
+<HeaderGradient />
+<header>
+  <div class="mx-auto global-layout-width flex justify-between px-6 sm:px-8 py-4 lg:px-8">
+    <div class="flex gap-3 sm:gap-6 items-center flex-shrink-0">
+      <a href={localizePath(lang, '/')} class="pointer-events-auto select-none" aria-label={t('nav.home')}>
+        <Avatar height={40} class="transition-transform hover:-rotate-6" />
+      </a>
+      <div class="flex gap-1">
+        {HEADER_LINKS.map((link) => (
+          <HeaderLink href={localizePath(lang, link.url)} background>
+            {t(link.key)}
+          </HeaderLink>
+        ))}
+      </div>
+    </div>
+    <div class="flex gap-3 items-center">
+      <LanguagePicker {alternates} />
+      <div class="flex gap-2 items-center" transition:persist="header-theme-toggle">
+        <SearchSwitch />
+        <a
+          href={localizePath(lang, '/index.xml')}
+          target="_blank"
+          class="inline-flex items-center hover:scale-105 size-5 origin-center"
+          aria-label={t('nav.rss')}
+          title={t('nav.rss')}
+        >
+          <span class="icon-[material-symbols--rss-feed] size-5"></span>
+        </a>
+        <ThemeToggle client:load />
+      </div>
+    </div>
+  </div>
+  <div class="relative global-layout-width mx-auto pointer-events-none">
+    <div aria-hidden="true" class="absolute inset-x-0 -top-14 bottom-0 mx-auto global-layout-width">
+      <div class="to-(--color-border)/50 absolute bottom-0 left-0 top-0 w-px bg-gradient-to-b from-transparent to-75%"></div>
+      <div class="to-(--color-border)/50 absolute bottom-0 right-0 top-0 w-px bg-gradient-to-b from-transparent to-75%"></div>
+    </div>
+  </div>
+</header>
+
+<SectionDivider className="border-t-border dark:border-t-border/50" />

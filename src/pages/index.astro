@@ -1,0 +1,25 @@
+---
+import HomeView from '~/views/HomeView.astro'
+---
+
+<HomeView>
+  <script is:inline slot="head">
+    // First visit to the Spanish home: send English-speaking browsers to /en/.
+    // An explicit choice in the language picker wins, and crawlers are left alone
+    // so search engines keep indexing the Spanish page at "/".
+    ;(() => {
+      if (location.pathname !== '/') return
+      if (/bot|crawl|spider|slurp|lighthouse|headless/i.test(navigator.userAgent)) return
+      let saved = null
+      try {
+        saved = localStorage.getItem('lang')
+      } catch {}
+      if (saved === 'es') return
+      // The first of the browser's languages that the blog has decides; anything else gets English.
+      const preferred = (navigator.languages || [navigator.language])
+        .map((l) => l.slice(0, 2).toLowerCase())
+        .find((l) => l === 'es' || l === 'en')
+      if (saved === 'en' || preferred !== 'es') location.replace('/en/')
+    })()
+  </script>
+</HomeView>

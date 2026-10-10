@@ -1,0 +1,94 @@
+---
+import { SKILLSSHOWCASE_CONFIG, SOCIAL_LINKS, GITHUB_CONFIG, POSTS_CONFIG } from '~/config'
+import { getLocale, useTranslations } from '~/i18n'
+import Layout from '~/layouts/Layout.astro'
+import SectionDivider from '~/components/base/SectionDivider.astro'
+import GithubContributions from '~/components/base/GithubContributions.tsx'
+import SocialLink from '~/components/base/SocialLink.astro'
+import List from '~/components/posts/card/List.astro'
+import SkillsShowcase from '~/components/base/SkillsShowcase.astro'
+import { getNumPosts, getPinnedPosts } from '~/lib/data'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+
+const { ENABLED, GITHUB_USERNAME, TOOLTIP_ENABLED } = GITHUB_CONFIG
+const { size, type } = POSTS_CONFIG.homePageConfig
+const { SKILLS_ENABLED, SKILLS_DATA } = SKILLSSHOWCASE_CONFIG
+
+const pinnedPosts = await getPinnedPosts(lang)
+const hasPinnedPosts = pinnedPosts.length > 0
+const showPosts = hasPinnedPosts ? pinnedPosts : await getNumPosts(lang, size)
+---
+
+<Layout title={t('home.title')} description={t('site.description')}>
+  <slot name="head" slot="head" />
+  <div class="relative z-[1]">
+    <div class="py-8 pb-10 px-6 sm:px-8">
+      <h1 class="flex flex-col gap-2">
+        <span class="text-4xl sm:text-5xl tracking-tight gradient-text w-fit">Cristian Gutiérrez</span>
+        <span class="text-muted-foreground font-light text-xl sm:text-2xl block tracking-wide text-balance">
+          SRE / AI Platform Engineer
+        </span>
+      </h1>
+      <div class="pro text-muted-foreground text-pretty">
+        {lang === 'es' ? (
+          <p>
+            Disfruto gestionando infraestructura como SRE, tanto en el trabajo como en casa, donde tengo tres clústeres en mi homelab.
+            Intento que todas las herramientas que hago sean open source y aportar lo que pueda a la comunidad 💜
+          </p>
+        ) : (
+          <p>
+            I enjoy running infrastructure as an SRE, both at work and at home, where I have three clusters in my homelab. I try to make
+            every tool I build open source and give back to the community as much as I can 💜
+          </p>
+        )}
+      </div>
+      <div class="mt-6 flex gap-6">
+        {SOCIAL_LINKS.map((item) => (
+          <SocialLink href={item.url} icon={item.icon} aria-label={item.name} count={item.count} label={t('home.followers')} />
+        ))}
+      </div>
+    </div>
+    {ENABLED && (
+      <>
+        <SectionDivider />
+        <div class="py-8 pb-10 px-6 max-md:px-6">
+          <div class="px-2 max-md:px-0">
+            <h2 class="text-2xl sm:text-3xl">GitHub</h2>
+            <p class="text-muted-foreground mb-6 mt-1">{t('home.contributions')}</p>
+          </div>
+          <GithubContributions
+            username={GITHUB_USERNAME}
+            tooltipEnabled={TOOLTIP_ENABLED}
+            locale={lang}
+            client:load
+            transition:animate="none"
+          />
+        </div>
+      </>
+    )}
+    {SKILLS_ENABLED && SKILLS_DATA.length > 0 && (
+      <>
+        <SectionDivider />
+        <div class="py-8 pb-10 px-6 max-md:px-6">
+          <div class="px-2 max-md:px-0">
+            <h2 class="text-2xl sm:text-3xl tracking-tight">{t('home.skills')}</h2>
+            <p class="text-muted-foreground mb-6 mt-1">{t('home.skillsSub')}</p>
+          </div>
+          <SkillsShowcase skillsData={SKILLS_DATA} />
+        </div>
+      </>
+    )}
+    <SectionDivider />
+    <div class="py-8 pb-10 px-6 sm:px-8">
+      <h2 class="text-2xl sm:text-3xl tracking-tight">{t('home.posts')}</h2>
+      <p class="text-muted-foreground mb-6 mt-1">
+        {showPosts.length === 1
+          ? t(hasPinnedPosts ? 'home.pinnedOne' : 'home.recentOne')
+          : `${t(hasPinnedPosts ? 'home.pinned' : 'home.recent')} ${showPosts.length} ${t('home.postsSuffix')}`}
+      </p>
+      <List posts={showPosts} {type} coverLayout={POSTS_CONFIG.homePageConfig?.coverLayout} />
+    </div>
+  </div>
+</Layout>

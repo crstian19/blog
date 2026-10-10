@@ -1,0 +1,47 @@
+---
+import '~/styles/global.css'
+import '~/styles/markdown.css'
+import '~/styles/lqip.css'
+import '~/styles/github-card.css'
+import { SITE } from '~/config'
+import { LOCALES, getLocale, localizePath, unlocalizePath, type Locale } from '~/i18n'
+import Head from '~/components/base/Head.astro'
+import Header from './Header.astro'
+import Footer from './Footer.astro'
+
+type Props = {
+  title: string
+  description: string
+  image?: string
+  disableViewTransition?: boolean
+  /**
+   * The same page in other locales. Defaults to the same path in every locale,
+   * which is right for pages that exist in all of them (home, lists, tags).
+   * Pass only the locales that really have this page, e.g. a post's translations.
+   */
+  alternates?: Partial<Record<Locale, string>>
+}
+
+const { title, description, image, disableViewTransition, alternates }: Props = Astro.props
+const lang = getLocale(Astro.url)
+const neutralPath = unlocalizePath(Astro.url.pathname)
+const pageAlternates = alternates ?? Object.fromEntries(LOCALES.map((l) => [l, localizePath(l, neutralPath)]))
+---
+
+<!doctype html>
+<html {lang} transition:name="root" transition:animate={SITE.transition && !disableViewTransition ? 'fade' : 'none'}>
+  <head>
+    <Head title={`${title} | ${SITE.title}`} {description} {image} alternates={pageAlternates} />
+    <slot name="head" />
+  </head>
+  <body class="flex flex-col">
+    <Header alternates={pageAlternates} />
+    <div class="grow flex">
+      <main class="relative border-x border-border/50 global-layout-width mx-auto grow min-w-0">
+        <slot />
+      </main>
+    </div>
+    <Footer />
+    <div class="safari-hidden pointer-events-none bg-white dark:bg-black fixed z-50 bottom-0 left-0 h-28 [mask-image:linear-gradient(transparent,#000000)] w-full"></div>
+  </body>
+</html>
