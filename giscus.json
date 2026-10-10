@@ -1,0 +1,5 @@
+{
+  "origins": ["https://blog.crstian.me"],
+  "originsRegex": ["https://[a-z0-9-]+\\.my-personal-blog\\.pages\\.dev", "http://localhost:[0-9]+"],
+  "defaultCommentOrder": "oldest"
+}
