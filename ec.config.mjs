@@ -21,7 +21,7 @@ export default defineEcConfig({
     borderRadius: '0',
     codePaddingBlock: '0.8571429em',
     codePaddingInline: '1.1428571em',
-    borderColor: ({ theme }) => (theme.type === 'dark' ? '#24273a' : '#e6e9ef'),
+    borderColor: ({ theme }) => (theme.type === 'dark' ? '#313244' : '#e6e9ef'),
 
     frames: {
       frameBoxShadowCssValue: false,
@@ -41,8 +41,8 @@ export default defineEcConfig({
     pluginLineNumbers(),
   ],
 
-  themes: ['catppuccin-macchiato', 'catppuccin-latte'],
-  themeCssSelector: (theme) => (theme.name === 'catppuccin-macchiato' ? '.dark' : ':root:not(.dark)'),
+  themes: ['catppuccin-mocha', 'catppuccin-latte'],
+  themeCssSelector: (theme) => (theme.name === 'catppuccin-mocha' ? '.dark' : ':root:not(.dark)'),
   useDarkModeMediaQuery: false,
   emitExternalStylesheet: false,
 })

@@ -166,13 +166,7 @@ export default function GithubContributions({ username, tooltipEnabled, locale =
                   <div
                     className={cn(
                       'size-2 relative transition-colors duration-500 rounded-[1px]',
-                      count === 0
-                        ? 'bg-zinc-200/70 dark:bg-zinc-900'
-                        : count < 5
-                          ? 'bg-zinc-400/70 dark:bg-zinc-700'
-                          : count < 10
-                            ? 'bg-zinc-500'
-                            : 'bg-zinc-900 dark:bg-zinc-50'
+                      count === 0 ? 'bg-muted' : count < 5 ? 'bg-brand/35' : count < 10 ? 'bg-brand/70' : 'bg-brand'
                     )}
                   />
                 </Tooltip>

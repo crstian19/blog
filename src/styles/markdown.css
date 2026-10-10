@@ -5,23 +5,23 @@
 /* ===== CSS自定义属性 (现代化设计) ===== */
 :root {
   /* 颜色系统 - 使用 light-dark() 函数 */
-  --color-text-primary: light-dark(#0a0a0a, #d5d5d6);
-  --color-text-secondary: light-dark(#52525b, #a1a1aa);
-  --color-text-muted: light-dark(#6b7280, #9ca3af);
-  --color-heading: light-dark(#0a0a0a, #d5d5d6);
-  --color-link: light-dark(#0a0a0a, #e5e7eb);
-  --color-link-hover: light-dark(#1f2937, #f3f4f6);
-  --color-anchor: light-dark(#6366f1, #818cf8);
+  --color-text-primary: light-dark(oklch(20% 0.04 285), oklch(90% 0.012 285));
+  --color-text-secondary: light-dark(oklch(42% 0.04 285), oklch(75% 0.03 285));
+  --color-text-muted: light-dark(oklch(50% 0.035 285), oklch(68% 0.03 285));
+  --color-heading: light-dark(oklch(18% 0.04 285), oklch(96% 0.012 285));
+  --color-link: light-dark(oklch(52% 0.24 285), oklch(76% 0.16 285));
+  --color-link-hover: light-dark(oklch(45% 0.24 285), oklch(84% 0.12 285));
+  --color-anchor: light-dark(oklch(59.7% 0.23 285.5), oklch(72% 0.19 285));
 
   /* 背景颜色 */
-  --color-bg-inline-code: light-dark(#f1f3f5, #1e1e20);
-  --color-text-inline-code: light-dark(#3b4252, #c9d1d9);
+  --color-bg-inline-code: light-dark(oklch(95% 0.02 285), oklch(18% 0.04 285));
+  --color-text-inline-code: light-dark(oklch(40% 0.12 285), oklch(85% 0.08 285));
   --color-bg-polaroid: #ffffff;
 
   /* 边框颜色 */
-  --color-border-light: light-dark(#e9edf2, #2b2b30);
+  --color-border-light: light-dark(oklch(91% 0.02 285), oklch(24% 0.045 285));
   --color-border-medium: light-dark(#555, #555);
-  --color-border-blockquote: light-dark(#e6ebf2, #3a3a40);
+  --color-border-blockquote: light-dark(oklch(85% 0.06 285), oklch(45% 0.15 285));
 
   /* 阴影 */
   --shadow-polaroid: 0 5px 15px rgb(0 0 0 / 0.15);

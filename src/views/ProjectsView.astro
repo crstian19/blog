@@ -83,23 +83,15 @@ const projects = await getAllProjects()
                     )}
                   </div>
                 </div>
-                <div class="flex items-center gap-5 text-zinc-500 text-sm z-10">
+                <div class="flex items-center gap-5 text-muted-foreground text-sm z-10">
                   {project.data.website && (
-                    <a
-                      href={project.data.website}
-                      target="_blank"
-                      class="hover:text-zinc-600 dark:hover:text-zinc-100 flex items-center gap-1"
-                    >
+                    <a href={project.data.website} target="_blank" class="hover:text-primary flex items-center gap-1">
                       <span class="icon-[mdi--web] size-4" />
                       <span>{t('projects.website')}</span>
                     </a>
                   )}
                   {project.data.githubUrl && (
-                    <a
-                      href={project.data.githubUrl}
-                      target="_blank"
-                      class="hover:text-zinc-600 dark:hover:text-zinc-100 flex items-center gap-1"
-                    >
+                    <a href={project.data.githubUrl} target="_blank" class="hover:text-primary flex items-center gap-1">
                       <span class="icon-[mdi--github] size-4" />
                       <span>GitHub</span>
                     </a>
