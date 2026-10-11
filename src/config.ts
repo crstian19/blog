@@ -17,7 +17,7 @@ export const SITE: Site = {
   website: 'https://blog.crstian.me/',
   base: '/',
   author: 'Crstian',
-  ogImage: '/og-image.webp',
+  ogImage: '/og-image.jpg',
   transition: false,
   themeAnimation: true,
 }
