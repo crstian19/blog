@@ -58,45 +58,51 @@ export const SOCIAL_LINKS: SocialLink[] = [
   },
 ]
 
-// Logos come from public/stack.svg, the same sprite crstian.me uses; `icon`
-// is the symbol id. Same stack and order as the crstian.me home page.
+// Logos come from public/stack.svg, based on the crstian.me sprite; `icon`
+// is the symbol id. Grouped by theme, from what the homelab and work repos use.
 export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
   SKILLS_ENABLED: true,
   SKILLS_DATA: [
+    // AI and platform
     {
       direction: 'left',
       skills: [
         { name: 'vLLM', icon: 'vllm', url: 'https://docs.vllm.ai/' },
         { name: 'LiteLLM', icon: 'litellm', url: 'https://www.litellm.ai/' },
+        { name: 'agentgateway', icon: 'agentgateway', url: 'https://agentgateway.dev/' },
+        { name: 'NVIDIA', icon: 'nvidia', url: 'https://developer.nvidia.com/' },
+        { name: 'KEDA', icon: 'keda', url: 'https://keda.sh/' },
         { name: 'Kubernetes', icon: 'k8s', url: 'https://kubernetes.io/' },
-        { name: 'AWS', icon: 'aws', url: 'https://aws.amazon.com/' },
-        { name: 'DigitalOcean', icon: 'digitalocean', url: 'https://www.digitalocean.com/' },
-        { name: 'Azure', icon: 'azure', url: 'https://azure.microsoft.com/' },
-        { name: 'Google Cloud', icon: 'gcp', url: 'https://cloud.google.com/' },
-        { name: 'Argo', icon: 'argo', url: 'https://argoproj.github.io/' },
+        { name: 'Argo CD', icon: 'argo', url: 'https://argo-cd.readthedocs.io/' },
       ],
     },
+    // Networking, secrets and data
     {
       direction: 'right',
       skills: [
-        { name: 'Kong', icon: 'kong', url: 'https://konghq.com/' },
-        { name: 'GitHub Actions', icon: 'github-actions', url: 'https://github.com/features/actions' },
-        { name: 'GitLab CI', icon: 'gitlab-ci', url: 'https://docs.gitlab.com/ee/ci/' },
-        { name: 'Vault', icon: 'vault', url: 'https://www.vaultproject.io/' },
+        { name: 'kgateway', icon: 'kgateway', url: 'https://kgateway.dev/' },
         { name: 'Traefik', icon: 'traefik', url: 'https://traefik.io/traefik/' },
-        { name: 'Nginx', icon: 'nginx', url: 'https://nginx.org/' },
-        { name: 'PostgreSQL', icon: 'postgresql', url: 'https://www.postgresql.org/' },
+        { name: 'cert-manager', icon: 'cert-manager', url: 'https://cert-manager.io/' },
+        { name: 'Infisical', icon: 'infisical', url: 'https://infisical.com/' },
+        { name: 'Helm', icon: 'helm', url: 'https://helm.sh/' },
+        { name: 'CloudNativePG', icon: 'cloudnativepg', url: 'https://cloudnative-pg.io/' },
+        { name: 'Dragonfly', icon: 'dragonfly', url: 'https://www.dragonflydb.io/' },
+        { name: 'Cloudflare', icon: 'cloudflare', url: 'https://www.cloudflare.com/' },
       ],
     },
+    // Observability and infrastructure
     {
       direction: 'left',
       skills: [
-        { name: 'Grafana', icon: 'grafana', url: 'https://grafana.com/' },
         { name: 'Prometheus', icon: 'prometheus', url: 'https://prometheus.io/' },
-        { name: 'Python', icon: 'python', url: 'https://www.python.org/' },
-        { name: 'Terraform', icon: 'terraform', url: 'https://www.terraform.io/' },
-        { name: 'Golang', icon: 'golang', url: 'https://go.dev/' },
-        { name: 'Astro', icon: 'astro', url: 'https://astro.build/' },
+        { name: 'VictoriaMetrics', icon: 'victoriametrics', url: 'https://victoriametrics.com/' },
+        { name: 'Grafana', icon: 'grafana', url: 'https://grafana.com/' },
+        { name: 'Loki', icon: 'loki', url: 'https://grafana.com/oss/loki/' },
+        { name: 'Tempo', icon: 'tempo', url: 'https://grafana.com/oss/tempo/' },
+        { name: 'NixOS', icon: 'nixos', url: 'https://nixos.org/' },
+        { name: 'Hetzner', icon: 'hetzner', url: 'https://www.hetzner.com/' },
+        { name: 'AWS', icon: 'aws', url: 'https://aws.amazon.com/' },
+        { name: 'Go', icon: 'golang', url: 'https://go.dev/' },
         { name: 'Arch', icon: 'arch', url: 'https://archlinux.org/' },
       ],
     },
