@@ -71,6 +71,18 @@ export const SOCIAL_LINKS: SocialLink[] = [
     url: 'https://x.com/crstiax',
     icon: 'icon-[ri--twitter-x-fill]',
   },
+  {
+    name: 'Mastodon',
+    url: 'https://mastodon.social/@crstian',
+    icon: 'icon-[ri--mastodon-fill]',
+    // Lets Mastodon verify this link on the profile.
+    rel: 'me',
+  },
+  {
+    name: 'Email',
+    url: 'mailto:cristian@crstian.me',
+    icon: 'icon-[ri--mail-line]',
+  },
 ]
 
 // Logos come from public/stack.svg, the same sprite crstian.me uses; `icon`
