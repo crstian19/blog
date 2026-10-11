@@ -102,6 +102,7 @@ const t = useTranslations(getLocale(Astro.url))
     searchMask?.offsetHeight
     searchMask?.classList.remove('opacity-0')
     searchInput?.focus()
+    ;(window as any).__loadPagefind?.()
     // 移除了 document.body.style.overflow = 'hidden'
   }
 
@@ -124,6 +125,10 @@ const t = useTranslations(getLocale(Astro.url))
 
   // 点击开关
   searchSwitch?.addEventListener('click', openSearch)
+  // Warm up the search index before the click lands.
+  const warmPagefind = () => (window as any).__loadPagefind?.()
+  searchSwitch?.addEventListener('pointerenter', warmPagefind, { once: true })
+  searchSwitch?.addEventListener('focus', warmPagefind, { once: true })
 
   // 点击遮罩层关闭
   searchMask?.addEventListener('click', (e) => {
@@ -167,7 +172,8 @@ const t = useTranslations(getLocale(Astro.url))
     }
     if (import.meta.env.PROD) {
       const pagefindQuery = exactMode ? `"${q}"` : q
-      const search = await pagefind.debouncedSearch(pagefindQuery)
+      const pf = await (window as any).__loadPagefind()
+      const search = await pf.debouncedSearch(pagefindQuery)
 
       // 如果期间产生了新的请求，丢弃本次结果，避免重复提示或错位渲染
       if (reqId !== searchReqId || searchInput?.value.trim() !== q) return
@@ -204,6 +210,8 @@ const t = useTranslations(getLocale(Astro.url))
           if (data.sub_results) {
             for (const subResult of data.sub_results) {
               if (subResult.excerpt === data.excerpt) continue
+              // The first sub-result is often the page itself; it is already listed above.
+              if (subResult.url === data.url) continue
 
               const cleanTitle = subResult.title.replace(/\s*[Hh][1-6]$/g, '')
 
@@ -239,18 +247,14 @@ const t = useTranslations(getLocale(Astro.url))
 </script>
 
 {import.meta.env.PROD && <script is:inline define:vars={{ scriptUrl: '/pagefind/pagefind.js' }}>
-  async function loadPagefind() {
-    const pagefind = await import(scriptUrl)
-
-    await pagefind.options({
-      excerptLength: 20,
-      showSubResults: true,
-    })
-
-    pagefind.init()
-    window.pagefind = pagefind
-    pagefind.search('')
-  }
-
-  if (!window.pagefind) loadPagefind()
+  // Pagefind (script, worker and WebAssembly, ~150 KB) loads on demand, when
+  // the search opens or the button is hovered, not on every page view.
+  window.__loadPagefind ??= () =>
+    (window.__pagefindReady ??= (async () => {
+      const pagefind = await import(scriptUrl)
+      await pagefind.options({ excerptLength: 20, showSubResults: true })
+      pagefind.init()
+      window.pagefind = pagefind
+      return pagefind
+    })())
 </script>}
