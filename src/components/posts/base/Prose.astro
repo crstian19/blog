@@ -20,9 +20,26 @@ const { class: className } = Astro.props
     background: 'rgb(0 0 0 / 0.8)',
   })
 
+  // Responsive images load the size that fits the column; when zooming,
+  // use the largest file in the srcset so the enlarged image stays sharp.
+  function largestFromSrcset(img: HTMLImageElement) {
+    let best = { url: '', width: 0 }
+    for (const candidate of img.srcset.split(',')) {
+      const [url, descriptor = ''] = candidate.trim().split(/\s+/)
+      const width = parseInt(descriptor, 10) || 0
+      if (url && width > best.width) best = { url, width }
+    }
+    return best.url
+  }
+
   document.addEventListener('astro:page-load', () => {
     zoom.detach()
-    zoom.attach('.markdown img:not(.no-zoom):not(a img)')
+    const zoomable = document.querySelectorAll<HTMLImageElement>('.markdown img:not(.no-zoom):not(a img)')
+    zoomable.forEach((img) => {
+      const large = img.srcset && largestFromSrcset(img)
+      if (large) img.dataset.zoomSrc = large
+    })
+    zoom.attach(zoomable)
 
     const lqipImages = document.querySelectorAll('.markdown img[style*="--lqip:"]')
     lqipImages.forEach((img) => {
