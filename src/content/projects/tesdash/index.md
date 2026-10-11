@@ -10,4 +10,8 @@ iconClass: 'icon-[simple-icons--tesla]'
 star: 6
 fork: 5
 date: 2026-03-12
+logo: ./logo.webp
+# Container image; total downloads are read from its GHCR page at build time.
+dockerImage: ghcr.io/crstian19/tesdash
+pulls: 1027
 ---

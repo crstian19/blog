@@ -9,4 +9,5 @@ iconClass: 'icon-[ph--play-circle-duotone]'
 star: 7
 fork: 0
 date: 2026-02-18
+logo: ./logo.webp
 ---

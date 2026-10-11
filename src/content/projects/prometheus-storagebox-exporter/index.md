@@ -9,4 +9,8 @@ iconClass: 'icon-[simple-icons--hetzner]'
 star: 53
 fork: 2
 date: 2025-12-07
+logo: ./logo.webp
+# Container image; total downloads are read from its GHCR page at build time.
+dockerImage: ghcr.io/crstian19/prometheus-storagebox-exporter
+pulls: 27512
 ---

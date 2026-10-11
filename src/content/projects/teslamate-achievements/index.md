@@ -9,4 +9,5 @@ iconClass: 'icon-[simple-icons--grafana]'
 star: 17
 fork: 2
 date: 2025-12-15
+logo: ./logo.webp
 ---

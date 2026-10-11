@@ -13,6 +13,8 @@ interface NumberTickerProps {
   githubUser?: string
   githubRepo?: string
   githubType?: 'stars' | 'forks'
+  /** BCP 47 locale for thousands separators, e.g. 'es-ES' (14.439) or 'en-US' (14,439). */
+  locale?: string
 }
 
 export default function NumberTicker({
@@ -25,6 +27,7 @@ export default function NumberTicker({
   githubUser,
   githubRepo,
   githubType,
+  locale = 'en-US',
 }: NumberTickerProps) {
   const [value, setValue] = useState(initialValue)
   const ref = useRef<HTMLSpanElement>(null)
@@ -71,14 +74,14 @@ export default function NumberTicker({
 
   useEffect(() => {
     if (ref.current) {
-      ref.current.textContent = `${Intl.NumberFormat('en-US').format(direction === 'down' ? value : 0)} ${label ? label : ''}`
+      ref.current.textContent = `${Intl.NumberFormat(locale).format(direction === 'down' ? value : 0)} ${label ? label : ''}`
     }
   }, [])
 
   useEffect(() => {
     const unsubscribe = springValue.on('change', (latest) => {
       if (ref.current) {
-        ref.current.textContent = `${Intl.NumberFormat('en-US').format(Number.parseInt(latest.toFixed(0)))} ${label ? label : ''}`
+        ref.current.textContent = `${Intl.NumberFormat(locale).format(Number.parseInt(latest.toFixed(0)))} ${label ? label : ''}`
       }
     })
 
