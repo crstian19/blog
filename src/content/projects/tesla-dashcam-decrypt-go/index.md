@@ -9,4 +9,5 @@ iconClass: 'icon-[ph--lock-key-open-duotone]'
 star: 2
 fork: 0
 date: 2026-07-30
+logo: ./logo.webp
 ---

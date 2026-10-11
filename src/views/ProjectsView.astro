@@ -5,15 +5,22 @@ import SectionDivider from '~/components/base/SectionDivider.astro'
 import NumberTicker from '~/components/base/NumberTicker'
 import { Image } from 'astro:assets'
 import { getAllProjects } from '~/lib/data'
+import { fetchGhcrPulls } from '~/lib/ghcr'
 import PageTitle from '~/components/base/PageTitle.astro'
-import { getLocale, useTranslations } from '~/i18n'
+import { LOCALE_TAGS, getLocale, useTranslations } from '~/i18n'
 
 const lang = getLocale(Astro.url)
 const t = useTranslations(lang)
 const title = t('projects.title')
 const description = t('projects.description')
 const introduce = t('projects.introduce')
-const projects = await getAllProjects()
+// Container pulls are read at build time; the frontmatter count is the fallback.
+const projects = await Promise.all(
+  (await getAllProjects()).map(async (project) => {
+    const live = project.data.dockerImage ? await fetchGhcrPulls(project.data.dockerImage) : undefined
+    return { ...project, pulls: live ?? project.data.pulls }
+  })
+)
 ---
 
 <Layout {title} {description}>
@@ -37,10 +44,13 @@ const projects = await getAllProjects()
           <div>
             <div class="group relative hover:bg-muted/30 dark:hover:bg-muted/30 transition-colors duration-300 px-6 sm:px-8 py-4">
               <div class="absolute right-8 top-4 hidden sm:block">
-                {project.data.type == 'icon' && project.data.iconClass && (
-                  <span class={cn('size-10 text-muted-foreground', project.data.iconClass)} />
+                {project.data.logo ? (
+                  <Image src={project.data.logo} alt="" width={48} height={48} class="project-logo size-12 object-contain" loading="lazy" />
+                ) : (
+                  project.data.type == 'icon' &&
+                  project.data.iconClass && <span class={cn('size-10 text-muted-foreground', project.data.iconClass)} />
                 )}
-                {project.data.type == 'image' && project.data?.icon && (
+                {!project.data.logo && project.data.type == 'image' && project.data?.icon && (
                   <Image
                     src={project.data?.icon}
                     alt="icon"
@@ -67,7 +77,14 @@ const projects = await getAllProjects()
                       <>
                         <span class="text-xs uppercase tracking-wide font-medium text-muted-foreground">{t('projects.stars')}</span>
                         <span class="font-semibold text-lg tracking-wider">
-                          <NumberTicker play value={project.data.star} client:load {githubRepo} githubType="stars" />
+                          <NumberTicker
+                            play
+                            value={project.data.star}
+                            client:load
+                            {githubRepo}
+                            githubType="stars"
+                            locale={LOCALE_TAGS[lang]}
+                          />
                         </span>
                       </>
                     )}
@@ -77,11 +94,26 @@ const projects = await getAllProjects()
                       <>
                         <span class="text-xs uppercase tracking-wide font-medium text-muted-foreground">{t('projects.forks')}</span>
                         <span class="font-semibold text-lg tracking-wider">
-                          <NumberTicker play value={project.data.fork} client:load {githubRepo} githubType="forks" />
+                          <NumberTicker
+                            play
+                            value={project.data.fork}
+                            client:load
+                            {githubRepo}
+                            githubType="forks"
+                            locale={LOCALE_TAGS[lang]}
+                          />
                         </span>
                       </>
                     )}
                   </div>
+                  {project.pulls !== undefined && (
+                    <div class="flex items-center py-1.5 gap-3">
+                      <span class="text-xs uppercase tracking-wide font-medium text-muted-foreground">{t('projects.pulls')}</span>
+                      <span class="font-semibold text-lg tracking-wider">
+                        <NumberTicker play value={project.pulls} client:load locale={LOCALE_TAGS[lang]} />
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div class="flex items-center gap-5 text-muted-foreground text-sm z-10">
                   {project.data.website && (

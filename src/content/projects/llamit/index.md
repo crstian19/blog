@@ -10,4 +10,5 @@ iconClass: 'icon-[simple-icons--ollama]'
 star: 13
 fork: 0
 date: 2026-02-07
+logo: ./logo.webp
 ---

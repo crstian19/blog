@@ -77,12 +77,15 @@ description:
   en: 'Prometheus exporter for Gluetun.'
 githubUrl: 'https://github.com/crstian19/gluetun-exporter'
 website: 'https://example.com'   # optional
-iconClass: 'icon-[simple-icons--wireguard]'   # any Iconify icon
+iconClass: 'icon-[simple-icons--wireguard]'   # any Iconify icon, used when there is no logo
+logo: ./logo.webp   # optional real logo, grayscale until hover
+dockerImage: ghcr.io/crstian19/gluetun-exporter   # optional, shows its total pulls
+pulls: 14435   # fallback pull count if GHCR can't be read at build time
 date: 2026-03-22
 ---
 ```
 
-Stars and forks are refreshed live from GitHub.
+Stars and forks are refreshed live from GitHub. Pulls are read from the GHCR package page at build time, since GHCR has no public API for them. Logos come from the same project folder on crstian.me.
 
 ## Configuration
 

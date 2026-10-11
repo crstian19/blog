@@ -458,3 +458,31 @@ input[type='search']::-moz-search-cancel-button {
     background-position: 100% center;
   }
 }
+
+/* Project logos: grayscale at rest, in colour on hover (same as crstian.me) */
+.project-logo {
+  filter: grayscale(1) brightness(1.1);
+  opacity: 0.85;
+  transition:
+    filter 0.35s ease,
+    opacity 0.35s ease,
+    transform 0.35s ease;
+}
+
+html:not(.dark) .project-logo {
+  filter: grayscale(1) contrast(1.05);
+  opacity: 0.75;
+}
+
+.group:hover .project-logo,
+html:not(.dark) .group:hover .project-logo {
+  filter: none;
+  opacity: 1;
+  transform: rotate(6deg) scale(1.05);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .project-logo {
+    transform: none;
+  }
+}

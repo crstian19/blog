@@ -59,6 +59,11 @@ const projects = defineCollection({
       fork: z.number().default(0),
       date: z.date().optional(),
       draft: z.boolean().default(false),
+      // Real project logo (grayscale until hover); takes precedence over iconClass.
+      logo: image().optional(),
+      // Container image (ghcr.io/owner/name) and its fallback download count.
+      dockerImage: z.string().optional(),
+      pulls: z.number().optional(),
     }),
 })
 
