@@ -58,9 +58,9 @@ const ogImage = new URL(image || SITE.ogImage, Astro.url)
 
 <link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
 
-<!-- Fonts: body and headings are preloaded; the mono face only loads when code shows up -->
+<!-- Fonts: only the body face is preloaded (it renders the LCP text); headings and code load on use -->
 <Font cssVariable="--font-geist" preload />
-<Font cssVariable="--font-lexend-face" preload />
+<Font cssVariable="--font-lexend-face" />
 <Font cssVariable="--font-geist-mono-face" />
 
 <!-- 标准链接  Canonical URL -->
