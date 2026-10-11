@@ -2,10 +2,11 @@
 import { formatDate } from '~/lib/utils'
 import Badge from '~/components/posts/base/Badge.astro'
 import type { CardProps } from './List.astro'
-import { getLocale } from '~/i18n'
+import { getLocale, useTranslations } from '~/i18n'
 import { getPostUrl } from '~/lib/data'
 
 const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
 
 interface Props extends CardProps {}
 
@@ -42,7 +43,11 @@ const { post, class: className, style }: Props = Astro.props
         {post.data.tags.slice(0, 5).map((tag) => (
           <Badge type="tag" content={tag} />
         ))}
-        {post.data.tags.length > 5 && <span class="text-xs text-muted-foreground/60">+{post.data.tags.length - 5} more</span>}
+        {post.data.tags.length > 5 && (
+          <span class="text-xs text-muted-foreground">
+            +{post.data.tags.length - 5} {t('posts.moreTags')}
+          </span>
+        )}
       </div>
     )}
   </article>
