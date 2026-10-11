@@ -25,7 +25,7 @@ const eyes = [
 ---
 
 <span class={cn('relative inline-block select-none', className)} style={`width:${width}px;height:${height}px`} data-avatar>
-  <Image src={base} {width} {height} alt={SITE.author} class="size-full" densities={[1, 2, 3]} loading="eager" />
+  <Image src={base} {width} {height} alt={SITE.author} class="size-full" layout="fixed" loading="eager" />
   <svg viewBox={`0 0 ${VIEWBOX.width} ${VIEWBOX.height}`} class="absolute inset-0 size-full overflow-visible" aria-hidden="true">
     {eyes.map((eye) => (
       <g data-avatar-eye>

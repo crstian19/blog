@@ -129,7 +129,7 @@ export const SKILLSSHOWCASE_CONFIG: SkillsShowcaseConfig = {
         { name: 'NixOS', icon: 'nixos', url: 'https://nixos.org/' },
         { name: 'Hetzner', icon: 'hetzner', url: 'https://www.hetzner.com/' },
         { name: 'AWS', icon: 'aws', url: 'https://aws.amazon.com/' },
-        { name: 'Go', icon: 'golang', url: 'https://go.dev/' },
+        { name: 'Golang', icon: 'golang', url: 'https://go.dev/' },
         { name: 'Arch', icon: 'arch', url: 'https://archlinux.org/' },
       ],
     },

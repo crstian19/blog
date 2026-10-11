@@ -12,6 +12,9 @@ import SectionDivider from '~/components/base/SectionDivider.astro'
 import Comment from '~/components/posts/base/Comment.astro'
 import License from '~/components/posts/base/License.astro'
 import { COMMENT_CONFIG, POSTS_CONFIG, SITE } from '~/config'
+// Self-hosted KaTeX styles, only on post pages (it used to load from a CDN on every page).
+// The font files inside are fetched only if a formula actually renders.
+import 'katex/dist/katex.min.css'
 import type { Locale } from '~/i18n'
 import { getTranslationKey } from '~/lib/data'
 
@@ -69,7 +72,7 @@ const PostLayout = layoutMap[layoutKey]
       <>
         <SectionDivider />
         <div class="px-6 py-6 sm:px-8 pb-6 sm:pb-8">
-          <Comment id={post.id} title={frontmatter.title} term={getTranslationKey(post)} />
+          <Comment term={getTranslationKey(post)} />
         </div>
       </>
     )}
