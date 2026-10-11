@@ -47,14 +47,41 @@ export const FOOTER_LINKS: Link[] = [
 // get icon https://icon-sets.iconify.design/
 export const SOCIAL_LINKS: SocialLink[] = [
   {
-    name: 'github',
+    name: 'crstian.me',
+    url: 'https://crstian.me',
+    icon: 'icon-[ri--global-line]',
+  },
+  {
+    name: 'GitHub',
     url: 'https://github.com/crstian19',
     icon: 'icon-[ri--github-fill]',
   },
   {
-    name: 'twitter',
+    name: 'GitLab',
+    url: 'https://gitlab.com/Crstian',
+    icon: 'icon-[ri--gitlab-fill]',
+  },
+  {
+    name: 'LinkedIn',
+    url: 'https://www.linkedin.com/in/cristian-gutierrez-lopez/',
+    icon: 'icon-[ri--linkedin-box-fill]',
+  },
+  {
+    name: 'X',
     url: 'https://x.com/crstiax',
     icon: 'icon-[ri--twitter-x-fill]',
+  },
+  {
+    name: 'Mastodon',
+    url: 'https://mastodon.social/@crstian',
+    icon: 'icon-[ri--mastodon-fill]',
+    // Lets Mastodon verify this link on the profile.
+    rel: 'me',
+  },
+  {
+    name: 'Email',
+    url: 'mailto:cristian@crstian.me',
+    icon: 'icon-[ri--mail-line]',
   },
 ]
 

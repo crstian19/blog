@@ -129,6 +129,7 @@ export type SocialLink = {
   url: string
   icon: string
   count?: number
+  rel?: string
 }
 
 /**

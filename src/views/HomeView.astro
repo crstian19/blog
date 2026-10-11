@@ -46,7 +46,14 @@ const showPosts = hasPinnedPosts ? pinnedPosts : await getNumPosts(lang, size)
       </div>
       <div class="mt-6 flex gap-6">
         {SOCIAL_LINKS.map((item) => (
-          <SocialLink href={item.url} icon={item.icon} aria-label={item.name} count={item.count} label={t('home.followers')} />
+          <SocialLink
+            href={item.url}
+            icon={item.icon}
+            aria-label={item.name}
+            rel={item.rel}
+            count={item.count}
+            label={t('home.followers')}
+          />
         ))}
       </div>
     </div>
