@@ -91,6 +91,16 @@ Stars and forks are refreshed live from GitHub. Pulls are read from the GHCR pac
 
 `src/config.ts` holds the site identity, navigation, social links, the stack shown on the home page (logos from `public/stack.svg`), comments and analytics. The photos section is built but hidden behind `PHOTOS_CONFIG.enabled`.
 
+## Support
+
+If something here helped you, you can support the blog and my open source projects:
+
+- [GitHub Sponsors](https://github.com/sponsors/crstian19), no fees
+- [Ko-fi](https://ko-fi.com/crstian)
+- [PayPal](https://paypal.me/CrstianG)
+
+The same options are on [blog.crstian.me/support/](https://blog.crstian.me/support/).
+
 ## Credits
 
 Based on [Litos](https://github.com/Dnzzk2/Litos) by Dnzzk2, released under the MIT licence (see `LICENSE`).

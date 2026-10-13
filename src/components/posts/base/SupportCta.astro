@@ -1,6 +1,11 @@
 ---
-import { getLocale, localizePath, useTranslations } from '~/i18n'
+import { getLocale, localizePath, useTranslations, type TranslationKey } from '~/i18n'
 
+interface Props {
+  question?: TranslationKey
+}
+
+const { question = 'support.postCta' } = Astro.props
 const lang = getLocale(Astro.url)
 const t = useTranslations(lang)
 ---
@@ -8,7 +13,7 @@ const t = useTranslations(lang)
 <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-xl border border-border/60 bg-muted/20 px-5 py-4">
   <span class="flex items-center gap-3 font-medium">
     <span class="icon-[ri--heart-3-fill] size-5 text-primary" />
-    {t('support.postCta')}
+    {t(question)}
   </span>
   <a
     href={localizePath(lang, '/support/')}

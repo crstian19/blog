@@ -36,6 +36,14 @@ const t = useTranslations(lang)
     <div class="flex gap-3 items-center">
       <LanguagePicker {alternates} />
       <div class="flex gap-2 items-center" transition:persist="header-theme-toggle">
+        <a
+          href={localizePath(lang, '/support/')}
+          class="hidden sm:inline-flex items-center hover:scale-105 hover:text-primary size-5 origin-center transition-colors"
+          aria-label={t('nav.support')}
+          title={t('nav.support')}
+        >
+          <span class="icon-[ri--heart-3-line] size-5"></span>
+        </a>
         <SearchSwitch />
         <a
           href={localizePath(lang, '/index.xml')}
