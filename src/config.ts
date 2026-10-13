@@ -8,6 +8,7 @@ import type {
   Site,
   SkillsShowcaseConfig,
   SocialLink,
+  SupportOption,
 } from '~/types'
 
 // Texts shown to readers live in src/i18n.ts, one dictionary per locale.
@@ -42,6 +43,7 @@ export const FOOTER_LINKS: Link[] = [
   { key: 'nav.projects', url: '/projects/' },
   { key: 'nav.tags', url: '/tags/' },
   ...PHOTOS_LINK,
+  { key: 'nav.support', url: '/support/' },
 ]
 
 // get icon https://icon-sets.iconify.design/
@@ -82,6 +84,24 @@ export const SOCIAL_LINKS: SocialLink[] = [
     name: 'Email',
     url: 'mailto:cristian@crstian.me',
     icon: 'icon-[ri--mail-line]',
+  },
+]
+
+// Ways to support the blog, shown on /support/. Ordered by what reaches me,
+// from no fee at all to only the card processing fee. Ko-fi also takes PayPal.
+export const SUPPORT_OPTIONS: SupportOption[] = [
+  {
+    name: 'GitHub Sponsors',
+    url: 'https://github.com/sponsors/crstian19',
+    icon: 'icon-[simple-icons--githubsponsors]',
+    key: 'support.github',
+    recommended: true,
+  },
+  {
+    name: 'Ko-fi',
+    url: 'https://ko-fi.com/crstian',
+    icon: 'icon-[simple-icons--kofi]',
+    key: 'support.kofi',
   },
 ]
 

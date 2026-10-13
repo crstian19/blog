@@ -10,6 +10,7 @@ import PostFeatures from '~/components/posts/toc/PostFeatures.astro'
 import TocMobile from '~/components/posts/toc/TocMobile.astro'
 import SectionDivider from '~/components/base/SectionDivider.astro'
 import Comment from '~/components/posts/base/Comment.astro'
+import SupportCta from '~/components/posts/base/SupportCta.astro'
 import License from '~/components/posts/base/License.astro'
 import { COMMENT_CONFIG, POSTS_CONFIG, SITE } from '~/config'
 // Self-hosted KaTeX styles, only on post pages (it used to load from a CDN on every page).
@@ -62,6 +63,9 @@ const PostLayout = layoutMap[layoutKey]
         </>
       )}
     </PostLayout>
+    <div class="px-6 sm:px-8 pb-6 sm:pb-8">
+      <SupportCta />
+    </div>
     {posts.length > 1 && (
       <div class="px-6 sm:px-8 pb-6 sm:pb-8">
         <PostNavigation {prev} {next} />

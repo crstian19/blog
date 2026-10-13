@@ -1,0 +1,20 @@
+---
+import { getLocale, localizePath, useTranslations } from '~/i18n'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+---
+
+<div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 rounded-xl border border-border/60 bg-muted/20 px-5 py-4">
+  <span class="flex items-center gap-3 font-medium">
+    <span class="icon-[ri--heart-3-fill] size-5 text-primary" />
+    {t('support.postCta')}
+  </span>
+  <a
+    href={localizePath(lang, '/support/')}
+    class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+  >
+    <span class="icon-[ri--cup-line] size-4" />
+    {t('support.postLink')}
+  </a>
+</div>
