@@ -129,7 +129,7 @@ export type SupportOption = {
   url: string
   icon: string
   // i18n prefix: `${key}.description` and `${key}.fee`
-  key: 'support.github' | 'support.kofi'
+  key: 'support.github' | 'support.kofi' | 'support.paypal'
   recommended?: boolean
 }
 

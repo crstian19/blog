@@ -88,7 +88,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
 ]
 
 // Ways to support the blog, shown on /support/. Ordered by what reaches me,
-// from no fee at all to only the card processing fee. Ko-fi also takes PayPal.
+// from no fee at all to only the payment processing fee.
 export const SUPPORT_OPTIONS: SupportOption[] = [
   {
     name: 'GitHub Sponsors',
@@ -102,6 +102,12 @@ export const SUPPORT_OPTIONS: SupportOption[] = [
     url: 'https://ko-fi.com/crstian',
     icon: 'icon-[simple-icons--kofi]',
     key: 'support.kofi',
+  },
+  {
+    name: 'PayPal',
+    url: 'https://paypal.me/CrstianG',
+    icon: 'icon-[simple-icons--paypal]',
+    key: 'support.paypal',
   },
 ]
 
