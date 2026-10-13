@@ -1,0 +1,46 @@
+---
+import Layout from '~/layouts/Layout.astro'
+import PageTitle from '~/components/base/PageTitle.astro'
+import SectionDivider from '~/components/base/SectionDivider.astro'
+import { SUPPORT_OPTIONS } from '~/config'
+import { getLocale, useTranslations } from '~/i18n'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+const title = t('support.title')
+---
+
+<Layout {title} description={t('support.description')}>
+  <div class="relative z-[1] py-8 pb-10">
+    <div class="px-6 sm:px-8">
+      <PageTitle {title} introduce={t('support.introduce')} />
+    </div>
+    <div class="grid grid-cols-1 fade-up mt-6">
+      {SUPPORT_OPTIONS.map((option, index) => (
+        <div>
+          <a
+            href={option.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group flex items-center gap-5 px-6 sm:px-8 py-5 hover:bg-muted/30 transition-colors duration-300"
+          >
+            <span class={`${option.icon} size-9 shrink-0 text-muted-foreground transition-colors duration-300 group-hover:text-primary`} />
+            <span class="grow">
+              <span class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span class="font-semibold text-lg/relaxed">{option.name}</span>
+                {option.recommended && (
+                  <span class="rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">{t('support.recommended')}</span>
+                )}
+              </span>
+              <span class="block text-muted-foreground">{t(`${option.key}.description`)}</span>
+              <span class="block text-sm text-muted-foreground/70 mt-1">{t(`${option.key}.fee`)}</span>
+            </span>
+            <span class="icon-[ri--arrow-right-up-line] size-5 shrink-0 text-muted-foreground transition-all duration-300 group-hover:text-primary group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </a>
+          <SectionDivider className={index == SUPPORT_OPTIONS.length - 1 ? 'hidden' : ''} />
+        </div>
+      ))}
+    </div>
+    <p class="px-6 sm:px-8 mt-6 text-muted-foreground">{t('support.thanks')}</p>
+  </div>
+</Layout>

@@ -7,6 +7,7 @@ import { Image } from 'astro:assets'
 import { getAllProjects } from '~/lib/data'
 import { fetchGhcrPulls } from '~/lib/ghcr'
 import PageTitle from '~/components/base/PageTitle.astro'
+import SupportCta from '~/components/posts/base/SupportCta.astro'
 import { LOCALE_TAGS, getLocale, useTranslations } from '~/i18n'
 
 const lang = getLocale(Astro.url)
@@ -135,6 +136,9 @@ const projects = await Promise.all(
           </div>
         )
       })}
+    </div>
+    <div class="px-6 sm:px-8 pt-6">
+      <SupportCta question="support.projectsCta" />
     </div>
   </div>
 </Layout>

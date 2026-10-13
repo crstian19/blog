@@ -1,6 +1,6 @@
 ---
 import { SKILLSSHOWCASE_CONFIG, SOCIAL_LINKS, GITHUB_CONFIG, POSTS_CONFIG } from '~/config'
-import { getLocale, useTranslations } from '~/i18n'
+import { getLocale, localizePath, useTranslations } from '~/i18n'
 import Layout from '~/layouts/Layout.astro'
 import SectionDivider from '~/components/base/SectionDivider.astro'
 import GithubContributions from '~/components/base/GithubContributions.tsx'
@@ -55,6 +55,7 @@ const showPosts = hasPinnedPosts ? pinnedPosts : await getNumPosts(lang, size)
             label={t('home.followers')}
           />
         ))}
+        <SocialLink href={localizePath(lang, '/support/')} icon="icon-[ri--heart-3-line]" aria-label={t('nav.support')} title={t('nav.support')} />
       </div>
     </div>
     {ENABLED && (

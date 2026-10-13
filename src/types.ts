@@ -124,6 +124,15 @@ export type Link = {
  * @property {string} icon - 图标类名 / Icon class name
  * @property {number} [count] - 可选计数 / Optional count
  */
+export type SupportOption = {
+  name: string
+  url: string
+  icon: string
+  // i18n prefix: `${key}.description` and `${key}.fee`
+  key: 'support.github' | 'support.kofi' | 'support.paypal'
+  recommended?: boolean
+}
+
 export type SocialLink = {
   name: string
   url: string
