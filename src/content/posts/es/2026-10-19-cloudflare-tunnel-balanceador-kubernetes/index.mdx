@@ -1,0 +1,416 @@
+---
+title: 'Cloudflare Tunnel como balanceador de carga en Kubernetes'
+description: 'Cómo usar Cloudflare Tunnel con kgateway como balanceador de un clúster de Kubernetes en bare metal: sin LoadBalancer, sin MetalLB y sin puertos abiertos.'
+pubDate: 2026-10-19
+cover: assets/portada-tunnel-lb.jpg
+tags: ['kubernetes', 'cloudflare', 'cloudflare-tunnel', 'cloudflared', 'load-balancer', 'kgateway', 'gateway-api', 'bare-metal']
+draft: true
+---
+
+import TunnelLbDiagram from '~/components/posts/TunnelLbDiagram'
+import video from './assets/cloudflare-tunnel-lb.mp4?url'
+import poster from './assets/portada-tunnel-lb.jpg'
+
+Si montas Kubernetes en servidores dedicados o en casa, tarde o temprano te topas con lo mismo: un `Service` de tipo `LoadBalancer` se queda en `<pending>` para siempre, porque no hay ningún proveedor de cloud que le dé una IP.
+
+En mis clústeres, el tráfico público entra por un **Cloudflare Tunnel** y de ahí a [kgateway](https://kgateway.dev), una implementación de Gateway API sobre Envoy. No hace falta un `LoadBalancer`, ni MetalLB, ni abrir puertos en los nodos. El túnel *es* el balanceador. Aquí os cuento cómo funciona por dentro, cómo montarlo y las cosas con las que me he pegado por el camino, sobre todo con respuestas en streaming.
+
+<video
+  src={video}
+  poster={poster.src}
+  autoplay
+  muted
+  loop
+  playsinline
+  preload="metadata"
+  class="w-full rounded-xl border border-border"
+  aria-label="Animación: las peticiones pasan por el edge de Cloudflare y el túnel hasta el clúster; cae un conector y el edge reparte entre los demás"
+></video>
+
+## Por qué un túnel y no un LoadBalancer
+
+Las alternativas clásicas en bare metal tienen todas alguna pega:
+
+| Opción | Pega |
+|---|---|
+| `servicelb` (Klipper) de k3s | Abre puertos del host en cada nodo. Superficie pública en todos los workers |
+| MetalLB / IP flotante | Necesita L2 o BGP. Con servidores dedicados en centros de datos distintos no suele haber IP flotante compartida |
+| El balanceador del proveedor | Normalmente es para sus máquinas cloud, no para dedicados |
+| nginx en un nodo | Un único punto de fallo |
+
+Lo que da el túnel:
+
+- **Cero puertos de entrada.** `cloudflared` solo abre conexiones **salientes** hacia Cloudflare. El firewall de los nodos puede dejar entrar solo SSH y la VPN.
+- **TLS, WAF, rate limiting y protección DDoS** en el edge de Cloudflare.
+- **El primer nivel de balanceo y el failover los hace Cloudflare.** Cada réplica de `cloudflared` es un conector más del mismo túnel.
+- **Dominios de clientes** (Cloudflare for SaaS) por el mismo túnel, sin más infraestructura.
+- El proxy del gateway se queda como `ClusterIP`, sin `hostPort` ni `NodePort`.
+
+La contrapartida es que el túnel es un único objeto lógico en Cloudflare. Si se borra, se rota mal el token o Cloudflare tiene una incidencia con Tunnels, se cae todo lo público a la vez.
+
+## Cómo reparte la carga: tres niveles
+
+Este es el diagrama de cómo viaja una petición. Es interactivo: pulsad un pod de `cloudflared` para tumbarlo y ved cómo el edge deja de mandarle tráfico.
+
+<TunnelLbDiagram client:visible lang="es" />
+
+### Nivel 1: del edge de Cloudflare a los conectores
+
+Cada réplica de `cloudflared` abre cuatro conexiones con el edge, repartidas entre varios centros de datos de Cloudflare (los *colos*). Con tres réplicas son doce conexiones del mismo túnel.
+
+Cuando entra una petición por cualquier colo, Cloudflare la lleva por su red hasta una de esas conexiones. No hay afinidad: cualquier conector puede recibir cualquier hostname. Si un pod muere, sus conexiones desaparecen y el edge deja de usarlas en segundos. Ese es el failover, y no tenéis que configurar nada.
+
+El colo no lo elegís vosotros. Cloudflare conecta cada nodo con los colos que le tocan según su red, así que nodos en centros de datos distintos acaban conectados a ciudades distintas.
+
+### Nivel 2: de cloudflared al gateway
+
+Todas las reglas del túnel apuntan al mismo origen: el Service que kgateway crea para el `Gateway`, por ejemplo `http://public-gateway.kgateway-system.svc.cluster.local:80`.
+
+Ese Service es un `ClusterIP`, y kube-proxy balancea por conexión TCP, no por petición. Además, `cloudflared` mantiene un pool de conexiones keep-alive con el origen (por defecto 100 conexiones y 90 segundos de inactividad). El resultado es que el reparto entre los pods de Envoy es *pegajoso*: un pod puede ver mucho más tráfico que otro durante minutos. En el diagrama se ve en los contadores.
+
+Esto importa si tenéis alertas que esperan que todos los pods del gateway reciban tráfico: un pod recién arrancado puede tardar en ver su primera petición. Dadles un `for` de unos minutos.
+
+### Nivel 3: del gateway a la aplicación
+
+Envoy enruta cada petición según las `HTTPRoute` (por `Host`, `Path`, cabeceras…) y reparte entre los endpoints del Service de cada aplicación. A diferencia del nivel 2, aquí el balanceo es por petición, porque Envoy habla directamente con los pods.
+
+## Montarlo paso a paso
+
+### 1. Crear el túnel
+
+Lo más cómodo es un túnel *remotely-managed*: la configuración vive en Cloudflare y el pod solo necesita un token.
+
+En **Zero Trust → Networks → Tunnels → Create a tunnel**, elegid `cloudflared`, ponedle nombre y copiad el token. Después, en **Public Hostnames**, añadid cada hostname apuntando al Service del gateway:
+
+| Hostname | Servicio |
+|---|---|
+| `app.example.com` | `http://public-gateway.kgateway-system.svc.cluster.local:80` |
+| `*.apps.example.com` | `http://public-gateway.kgateway-system.svc.cluster.local:80` |
+| *(resto)* | `http_status:404` |
+
+Las reglas se evalúan de arriba abajo, así que un wildcard por encima de un host concreto se lo come. Al añadir un hostname, Cloudflare crea solo el registro DNS: un `CNAME` con proxy hacia `<tunnel-id>.cfargotunnel.com`.
+
+Ojo, que para publicar un hostname hacen falta dos cosas: la regla en el túnel y la `HTTPRoute` en el clúster. Si falta la primera, Cloudflare no sabe adónde mandarlo. Si falta la segunda, Envoy responde 404.
+
+### 2. El gateway, sin LoadBalancer
+
+Por defecto, kgateway crea el Service del proxy como `LoadBalancer`, que en bare metal se quedaría en `<pending>`. Con un `GatewayParameters` lo dejáis en `ClusterIP`, porque solo le va a hablar `cloudflared` desde dentro:
+
+```yaml
+apiVersion: gateway.kgateway.dev/v1alpha1
+kind: GatewayParameters
+metadata:
+  name: public-gateway
+  namespace: kgateway-system
+spec:
+  kube:
+    deployment:
+      replicas: 2
+    service:
+      type: ClusterIP
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: public-gateway
+  namespace: kgateway-system
+spec:
+  gatewayClassName: kgateway
+  infrastructure:
+    parametersRef:
+      group: gateway.kgateway.dev
+      kind: GatewayParameters
+      name: public-gateway
+  listeners:
+    - name: http
+      port: 80
+      protocol: HTTP   # TLS ends at Cloudflare
+      allowedRoutes:
+        namespaces:
+          from: All
+```
+
+El listener es HTTP porque el TLS lo termina Cloudflare y el tramo hasta el gateway va por dentro del clúster. Si queréis cifrar también ese tramo, poned un listener HTTPS con vuestro certificado y apuntad el túnel a `https://` con `originServerName`.
+
+Cada aplicación se publica con una `HTTPRoute` que cuelga de ese gateway:
+
+```yaml
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: app
+  namespace: app
+spec:
+  parentRefs:
+    - name: public-gateway
+      namespace: kgateway-system
+  hostnames: ['app.example.com']
+  rules:
+    - backendRefs:
+        - name: app
+          port: 8080
+      timeouts:
+        request: 0s   # no limit; see the timeouts section
+```
+
+### 3. El token como Secret
+
+```bash
+kubectl create namespace cloudflared
+kubectl -n cloudflared create secret generic cloudflared-token \
+  --from-literal=token=<TUNNEL_TOKEN>
+```
+
+Mejor todavía si lo gestionáis con External Secrets, Infisical, Vault o Sealed Secrets: si se pierde el clúster, este Secret no está en git.
+
+### 4. El Deployment de cloudflared
+
+Un `Deployment`, no un `DaemonSet`: el número de conectores no tiene por qué coincidir con el de nodos.
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0   # never lose capacity during a rollout
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+    spec:
+      terminationGracePeriodSeconds: 200   # grace-period + margin before SIGKILL
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: cloudflared
+      containers:
+        - name: cloudflared
+          image: cloudflare/cloudflared:<version>   # pin it, never :latest
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - --protocol
+            - http2
+            - --edge-ip-version
+            - "4"
+            - --grace-period
+            - 170s
+            - run
+            - --token
+            - $(TUNNEL_TOKEN)
+          env:
+            - name: TUNNEL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflared-token
+                  key: token
+          ports:
+            - name: metrics
+              containerPort: 2000
+          readinessProbe:
+            httpGet: { path: /ready, port: 2000 }
+          livenessProbe:
+            httpGet: { path: /ready, port: 2000 }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { memory: 512Mi }
+          securityContext:
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities: { drop: [ALL] }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+```
+
+Los argumentos, uno a uno:
+
+| Flag | Por qué |
+|---|---|
+| `--no-autoupdate` | La versión la fija la imagen. Que el binario no se actualice solo dentro de un pod |
+| `--metrics 0.0.0.0:2000` | Métricas de Prometheus, `/ready` para las probes y `/config` para ver la configuración real |
+| `--protocol http2` | Por defecto (`auto`) usa QUIC y cae a HTTP/2 si falla UDP. En mi caso, con QUIC se cancelaban streams de respuestas largas; con HTTP/2 sobre TCP van estables |
+| `--edge-ip-version 4` | Si los nodos no tienen salida IPv6 que funcione, con `auto` algunas conexiones se quedan reintentando por IPv6 |
+| `--grace-period 170s` | Al recibir `SIGTERM`, deja de aceptar y espera a las peticiones en vuelo. El valor por defecto son 30 s |
+| `--token` | Del Secret |
+
+`/ready` devuelve 200 solo si el pod tiene al menos una conexión con el edge, así que sirve tal cual para las dos probes.
+
+### El grace-period, con cuidado
+
+Con los 30 s por defecto, cada rollout o cada scale-down cortaba las respuestas en streaming que estaban a medias. Subirlo arregla eso, pero tiene un tope: **`cloudflared` no arranca con más de 3 minutos** (`grace-period must be equal or less than 3m0s`). Me enteré cuando casi todos los pods entraron en `CrashLoopBackOff` a la vez tras subirlo a 270 s. Con `maxUnavailable: 0` y el PDB, al menos los pods viejos siguieron sirviendo.
+
+Y `terminationGracePeriodSeconds` tiene que ser mayor que el grace-period, con algo de margen, o Kubernetes manda el `SIGKILL` antes de que termine de drenar.
+
+### Repartir los conectores
+
+`topologySpreadConstraints` con `ScheduleAnyway` reparte, pero no obliga: con más réplicas que nodos, el scheduler puede dejar nodos sin conector. Si tenéis nodos en dos centros de datos, poned también una restricción por zona (`topology.kubernetes.io/zone`) para que los dos estén representados en el túnel.
+
+## Escalar: cuidado con la métrica
+
+La tentación es escalar `cloudflared` con KEDA sobre `cloudflared_tunnel_concurrent_requests_per_tunnel`, las peticiones abiertas por pod. Funciona mientras las peticiones son cortas. Con respuestas en streaming que duran minutos (SSE, por ejemplo con LLMs), la concurrencia se dispara aunque el pod casi no use CPU, y el autoscaler se queda clavado en el máximo para siempre.
+
+Para este caso es mejor escalar por CPU, por `rate(cloudflared_tunnel_total_requests[5m])`, o directamente fijar las réplicas. Si usáis KEDA o un HPA, recordad que cada scale-down es un drenado, y ahí vuelve a importar el grace-period.
+
+## Streaming y WebSocket: la cadena de timeouts
+
+Cada salto del camino tiene su timeout. Cuando "se cortan los streams", esta es la tabla que hay que mirar:
+
+| Salto | Timeout | Qué pasa si se supera |
+|---|---|---|
+| Edge de Cloudflare → origen | 125 s hasta el primer byte (en Enterprise se puede subir hasta 6.000 s) | Error **524** |
+| `cloudflared` → gateway | `connectTimeout` de 30 s | 502 desde el edge |
+| `cloudflared` al terminar | `--grace-period` (máximo 3 min) | El stream se corta sin cuerpo |
+| Envoy, ruta sin timeout | 15 s para la respuesta completa | 504 o stream cortado a los 15 s |
+
+La última fila es la que más sorprende. Si una `HTTPRoute` no fija timeout, kgateway no pone ninguno en la ruta y Envoy aplica el suyo por defecto: 15 segundos, contados hasta que termina la respuesta entera. Cualquier respuesta en streaming que dure más se corta. Para esas rutas, poned `timeouts.request` en la `HTTPRoute` (`0s` lo desactiva), o un `TrafficPolicy` con `timeouts.request` y `timeouts.streamIdle`.
+
+Otras dos trampas:
+
+- **Envoy no acepta WebSocket por defecto.** Devuelve 403 a cualquier handshake hasta que declaráis el upgrade en la política del listener:
+
+  ```yaml
+  apiVersion: gateway.kgateway.dev/v1alpha1
+  kind: HTTPListenerPolicy   # ListenerPolicy in recent kgateway releases
+  metadata:
+    name: public-gateway
+    namespace: kgateway-system
+  spec:
+    targetRefs:
+      - group: gateway.networking.k8s.io
+        kind: Gateway
+        name: public-gateway
+    upgradeConfig:
+      enabledUpgrades: [websocket]
+  ```
+
+- **Cualquier cosa que bufferice la respuesta** (un filtro o un plugin que lea el cuerpo entero) hace que el primer byte no llegue hasta que termina la respuesta. Si eso pasa de 125 s, Cloudflare devuelve 524 aunque el backend esté respondiendo perfectamente.
+
+Con muchas conexiones HTTP/2 y streams largos, los buffers de red por defecto del kernel se pueden quedar cortos. Un DaemonSet que suba estos `sysctl` en los nodos me ayudó:
+
+```ini
+net.core.rmem_max = 134217728
+net.core.wmem_max = 134217728
+net.core.netdev_max_backlog = 65535
+net.core.somaxconn = 32768
+```
+
+## La IP real del cliente
+
+Para Envoy, la conexión siempre viene de la IP de un pod de `cloudflared`. La IP real viaja en las cabeceras que pone Cloudflare: `CF-Connecting-IP`, `X-Forwarded-For`, `True-Client-IP`, y también `CF-IPCountry` con el país.
+
+En la misma política del listener podéis decirle a Envoy en qué saltos de `X-Forwarded-For` confiar (`xffTrustedCIDRs`, con los rangos de Cloudflare). Así el access log y los backends ven la IP del cliente y no la del pod.
+
+Pero esas cabeceras las puede falsificar cualquiera que llegue al gateway sin pasar por Cloudflare, por ejemplo un pod del propio clúster. Si las usáis para rate limiting o auditoría:
+
+- Usad un `Gateway` solo para el tráfico del túnel, y otro aparte para lo interno.
+- En el gateway interno, quitad las cabeceras `CF-*` con un filtro `RequestHeaderModifier` en las rutas (o un `TrafficPolicy`).
+- Con NetworkPolicies, que al gateway público solo lleguen los pods de `cloudflared`.
+
+## NetworkPolicies
+
+Lo normal es que los backends solo acepten tráfico de los pods de Envoy del gateway. Dos detalles:
+
+- Si algún hostname del túnel apunta directamente a un Service sin pasar por el gateway, esa aplicación tiene que admitir a los pods de `cloudflared`.
+- Algunos CNI (kube-router, por ejemplo) aplican las reglas de forma asíncrona. Un pod nuevo del gateway puede ponerse `Ready` antes de que las NetworkPolicies de los backends lo conozcan, y durante esos segundos devuelve 503. Un `initialDelaySeconds` en su readiness que cubra ese retraso lo evita.
+
+## Observabilidad
+
+`cloudflared` expone métricas de Prometheus en el puerto de `--metrics`. Las que miro:
+
+| Métrica | Para qué |
+|---|---|
+| `cloudflared_tunnel_ha_connections` | Debe ser 4 por pod |
+| `cloudflared_tunnel_total_requests` | Throughput, con `rate()` |
+| `cloudflared_tunnel_request_errors` | Errores al hacer de proxy |
+| `cloudflared_tunnel_response_by_code` | Status por código |
+| `cloudflared_tunnel_concurrent_requests_per_tunnel` | Peticiones abiertas por pod |
+| `cloudflared_tunnel_server_locations` | A qué colo va cada conexión |
+| `cloudflared_orchestration_config_version` | Versión de la configuración remota. Si no coincide entre pods, alguno no recibió el cambio |
+
+```txt
+sum(cloudflared_tunnel_ha_connections)                    # expected: 4 × replicas
+sum by (status_code)(rate(cloudflared_tunnel_response_by_code[5m]))
+sum(rate(cloudflared_tunnel_request_errors[5m]))
+sum by (edge_location)(cloudflared_tunnel_server_locations == 1)
+```
+
+Las alertas que tengo: menos de 4 conexiones HA en un pod durante 5 minutos, un pod caído, y una tasa de errores por encima del suelo normal. Ese suelo no es cero: los clientes que cortan streams generan un goteo constante de `context canceled`.
+
+Las métricas `cloudflared_proxy_connect_latency_*` parecen la latencia del túnel, pero miden conexiones de proxy TCP y WARP. Con un túnel que solo publica hostnames HTTP apenas tienen datos, así que una alerta sobre ellas no avisa nunca.
+
+Del lado del gateway, el access log de Envoy en JSON (también se configura en la política del listener) es la forma más rápida de cruzar una queja con un status. El campo `response_flags` dice si el corte fue un timeout de la ruta (`UT`), un reset del upstream (`UC`) o que el cliente se fue (`DC`).
+
+Para ver la configuración real que tiene cargada un pod de `cloudflared` (la imagen no trae shell):
+
+```bash
+kubectl -n cloudflared port-forward deploy/cloudflared 2000:2000 &
+curl -s localhost:2000/config | jq '.version, [.config.ingress[] | {hostname, service}]'
+```
+
+En los logs, `ingressRule=N` es el índice de la regla, empezando en 0.
+
+## Cómo leer los errores
+
+| Lo que veis | Dónde | Lo más probable |
+|---|---|---|
+| `context canceled` | `cloudflared` | El cliente cerró la petición antes de terminar. Normal con streams y reintentos |
+| `unexpected EOF` en varias conexiones a la vez | `cloudflared` | El origen cerró: rollout del gateway o backend reiniciando |
+| 504 o stream cortado a los 15 s | Envoy | La `HTTPRoute` no tiene timeout y se aplica el de Envoy |
+| 403 en un handshake WebSocket | Envoy | Falta `enabledUpgrades: [websocket]` en el listener |
+| 503 con rastro en Envoy | Envoy | No llega al backend: NetworkPolicy, endpoints vacíos |
+| 502 sin rastro en Envoy | Edge | `cloudflared` no conecta con el gateway |
+| 524 | Edge | No llegó el primer byte en 125 s. Casi siempre algo bufferiza |
+| 530 / 1033 | Edge | El túnel no tiene conectores sanos, o el token no vale |
+
+## Lo que haría distinto
+
+- **Configuración del túnel en git.** En un túnel remotely-managed, las reglas viven en el dashboard, sin revisión ni historial. Con Terraform (`cloudflare_zero_trust_tunnel_cloudflared_config`) pasan a ser código.
+- **Más de un túnel** si servís cosas que no deberían caerse juntas. Un túnel es un único punto de fallo lógico.
+- **El token fuera de un `kubectl create`.** Que se pueda recrear el Secret desde un gestor de secretos.
+
+## Preguntas frecuentes
+
+### ¿Necesito MetalLB si uso Cloudflare Tunnel?
+
+No para el tráfico que entra por el túnel. El Service del gateway puede quedarse como `ClusterIP`, porque `cloudflared` le habla desde dentro del clúster.
+
+### ¿Cloudflare Tunnel balancea la carga entre réplicas?
+
+Sí. Cada réplica de `cloudflared` es un conector del mismo túnel, y el edge de Cloudflare reparte las peticiones entre todas sus conexiones y deja de usar las de un conector caído.
+
+### ¿Funciona con Gateway API o solo con Ingress?
+
+Con los dos. El túnel solo necesita una URL de origen, así que da igual que detrás haya un ingress controller o un gateway como kgateway, Envoy Gateway o Cilium.
+
+### ¿Cuántas réplicas de cloudflared necesito?
+
+Con al menos dos tenéis failover. Más que eso depende del tráfico, y repartidas entre nodos y centros de datos distintos.
+
+### ¿QUIC o HTTP/2?
+
+Por defecto `cloudflared` intenta QUIC. Si servís respuestas largas en streaming y veis cortes, probad `--protocol http2`.
