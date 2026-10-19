@@ -32,6 +32,79 @@ const { class: className } = Astro.props
     return best.url
   }
 
+  // medium-zoom only handles <img>. Videos get the same effect with its classes,
+  // so the overlay and transition come from the same CSS. Like medium-zoom, the
+  // zoomed copy lives in <body>: the post column is its own stacking context and
+  // would keep the original under the overlay and the sidebar.
+  const VIDEO_ZOOM_MARGIN = 24
+  let videoZoom: { video: HTMLVideoElement; clone: HTMLVideoElement; overlay: HTMLDivElement } | null = null
+
+  function onVideoZoomKey(event: KeyboardEvent) {
+    if (event.key === 'Escape') closeVideoZoom()
+  }
+
+  function closeVideoZoom() {
+    if (!videoZoom) return
+    const { video, clone, overlay } = videoZoom
+    videoZoom = null
+    window.removeEventListener('scroll', closeVideoZoom)
+    document.removeEventListener('keyup', onVideoZoomKey)
+    document.body.classList.remove('medium-zoom--opened')
+    clone.style.transform = ''
+    let done = false
+    const finish = () => {
+      if (done) return
+      done = true
+      video.currentTime = clone.currentTime
+      video.style.visibility = ''
+      clone.remove()
+      overlay.remove()
+    }
+    clone.addEventListener('transitionend', finish, { once: true })
+    setTimeout(finish, 400) // in case there is no transition (reduced motion)
+  }
+
+  function openVideoZoom(video: HTMLVideoElement) {
+    const rect = video.getBoundingClientRect()
+    const scale = Math.min(
+      (window.innerWidth - VIDEO_ZOOM_MARGIN * 2) / rect.width,
+      (window.innerHeight - VIDEO_ZOOM_MARGIN * 2) / rect.height,
+    )
+    const dx = window.innerWidth / 2 - (rect.left + rect.width / 2)
+    const dy = window.innerHeight / 2 - (rect.top + rect.height / 2)
+
+    const overlay = document.createElement('div')
+    overlay.className = 'medium-zoom-overlay'
+    overlay.style.background = 'rgb(0 0 0 / 0.8)'
+    overlay.addEventListener('click', closeVideoZoom)
+
+    const clone = video.cloneNode() as HTMLVideoElement
+    clone.removeAttribute('data-zoom')
+    clone.classList.add('medium-zoom-image--opened')
+    Object.assign(clone.style, {
+      position: 'fixed',
+      top: `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+      margin: '0',
+    })
+    clone.currentTime = video.currentTime
+    clone.addEventListener('click', closeVideoZoom)
+
+    document.body.append(overlay, clone)
+    clone.play().catch(() => {})
+    video.style.visibility = 'hidden'
+    videoZoom = { video, clone, overlay }
+
+    requestAnimationFrame(() => {
+      document.body.classList.add('medium-zoom--opened')
+      clone.style.transform = `translate(${dx}px, ${dy}px) scale(${scale})`
+    })
+    window.addEventListener('scroll', closeVideoZoom, { passive: true })
+    document.addEventListener('keyup', onVideoZoomKey)
+  }
+
   document.addEventListener('astro:page-load', () => {
     zoom.detach()
     const zoomable = document.querySelectorAll<HTMLImageElement>('.markdown img:not(.no-zoom):not(a img)')
@@ -40,6 +113,13 @@ const { class: className } = Astro.props
       if (large) img.dataset.zoomSrc = large
     })
     zoom.attach(zoomable)
+
+    document.querySelectorAll<HTMLVideoElement>('.markdown video:not(.no-zoom):not([controls])').forEach((video) => {
+      if (video.dataset.zoom) return
+      video.dataset.zoom = 'true'
+      video.classList.add('medium-zoom-image')
+      video.addEventListener('click', () => openVideoZoom(video))
+    })
 
     const lqipImages = document.querySelectorAll('.markdown img[style*="--lqip:"]')
     lqipImages.forEach((img) => {

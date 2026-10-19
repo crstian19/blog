@@ -35,7 +35,8 @@ export function postsSort(posts: Post[]) {
 
 async function getPublishedPosts(): Promise<Post[]> {
   const allPosts = await getCollection('posts')
-  return allPosts.filter((post) => !post.data.draft)
+  // Drafts only render in `astro dev`, so they can be previewed before publishing.
+  return allPosts.filter((post) => import.meta.env.DEV || !post.data.draft)
 }
 
 // 获取所有非草稿文章，按时间排序
