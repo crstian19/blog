@@ -20,9 +20,11 @@ type Props = {
    * Pass only the locales that really have this page, e.g. a post's translations.
    */
   alternates?: Partial<Record<Locale, string>>
+  /** Set on posts: switches og:type to article, adds its dates and tags, and drops the site name from the title. */
+  article?: { publishedTime: Date; modifiedTime?: Date; tags?: string[] }
 }
 
-const { title, description, image, disableViewTransition, alternates }: Props = Astro.props
+const { title, description, image, disableViewTransition, alternates, article }: Props = Astro.props
 const lang = getLocale(Astro.url)
 const neutralPath = unlocalizePath(Astro.url.pathname)
 const pageAlternates = alternates ?? Object.fromEntries(LOCALES.map((l) => [l, localizePath(l, neutralPath)]))
@@ -31,7 +33,7 @@ const pageAlternates = alternates ?? Object.fromEntries(LOCALES.map((l) => [l, l
 <!doctype html>
 <html {lang} transition:name="root" transition:animate={SITE.transition && !disableViewTransition ? 'fade' : 'none'}>
   <head>
-    <Head title={`${title} | ${SITE.title}`} {description} {image} alternates={pageAlternates} />
+    <Head title={article ? title : `${title} | ${SITE.title}`} {description} {image} alternates={pageAlternates} {article} />
     <slot name="head" />
   </head>
   <body class="flex flex-col">
