@@ -17,7 +17,7 @@ export const SITE: Site = {
   title: "Crstian's Blog",
   website: 'https://blog.crstian.me/',
   base: '/',
-  author: 'Crstian',
+  author: 'Cristian Gutiérrez',
   ogImage: '/og-image.jpg',
   transition: false,
   themeAnimation: true,
@@ -177,7 +177,7 @@ export const GITHUB_CONFIG: GithubConfig = {
 
 //--- Posts Page Config ---
 export const POSTS_CONFIG: PostConfig = {
-  author: 'Crstian',
+  author: 'Cristian Gutiérrez',
   homePageConfig: {
     size: 3,
     type: 'compact',

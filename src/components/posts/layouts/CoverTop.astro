@@ -45,13 +45,13 @@ const recommendText = t('posts.recommend')
         {frontmatter.description && <p class="text-sm text-muted-foreground/90 leading-relaxed mb-4">{frontmatter.description}</p>}
 
         <div class="space-y-3 sm:space-y-4">
-          <div
+          <h1
             data-pagefind-body
             data-pagefind-meta="title"
             class="text-2xl lg:text-3xl font-semibold leading-tight tracking-wide bg-gradient-to-r from-foreground/90 to-foreground/70 bg-clip-text text-transparent"
           >
             {frontmatter.title}
-          </div>
+          </h1>
         </div>
 
         <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-sm text-muted-foreground/85 mt-4">
