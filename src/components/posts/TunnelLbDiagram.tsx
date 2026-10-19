@@ -12,7 +12,7 @@ const TEXT = {
   es: {
     clients: 'Clientes',
     edge: 'Cloudflare edge',
-    colo: 'Colo',
+    colos: ['Madrid', 'París'],
     tunnel: 'Conexiones salientes del túnel',
     cluster: 'Clúster de Kubernetes',
     connector: 'cloudflared',
@@ -31,7 +31,7 @@ const TEXT = {
   en: {
     clients: 'Clients',
     edge: 'Cloudflare edge',
-    colo: 'Colo',
+    colos: ['Madrid', 'Paris'],
     tunnel: 'Outbound tunnel connections',
     cluster: 'Kubernetes cluster',
     connector: 'cloudflared',
@@ -254,13 +254,16 @@ export default function TunnelLbDiagram({ lang = 'en' }: { lang?: Lang }) {
             </g>
           ))}
 
-          {/* Colos */}
+          {/* Cloudflare data centres (colos), labelled by city */}
           {COLOS.map(([x, y], i) => (
             <g key={`colo${i}`}>
               <rect x={x - COLO_W / 2} y={y - 34} width={COLO_W} height={68} rx={12} className="fill-background" />
               <rect x={x - COLO_W / 2} y={y - 34} width={COLO_W} height={68} rx={12} className="fill-[#f6821f]/15 stroke-[#f6821f]/60" />
-              <text x={x} y={y + 5} textAnchor="middle" className={label}>
-                {t.colo} {i ? 'B' : 'A'}
+              <text x={x} y={y - 6} textAnchor="middle" className={small}>
+                Cloudflare
+              </text>
+              <text x={x} y={y + 15} textAnchor="middle" className={label}>
+                {t.colos[i]}
               </text>
             </g>
           ))}
