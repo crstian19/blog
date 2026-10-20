@@ -33,10 +33,16 @@ export function postsSort(posts: Post[]) {
   })
 }
 
+// Drafts render in `astro dev` and in Cloudflare Pages previews (any branch but
+// Main), so they can be reviewed or shared before publishing. Previews are served
+// with `x-robots-tag: noindex`; the production build leaves drafts out.
+const PRODUCTION_BRANCH = 'Main'
+const branch = process.env.CF_PAGES_BRANCH
+const showDrafts = import.meta.env.DEV || (!!branch && branch !== PRODUCTION_BRANCH)
+
 async function getPublishedPosts(): Promise<Post[]> {
   const allPosts = await getCollection('posts')
-  // Drafts only render in `astro dev`, so they can be previewed before publishing.
-  return allPosts.filter((post) => import.meta.env.DEV || !post.data.draft)
+  return allPosts.filter((post) => showDrafts || !post.data.draft)
 }
 
 // 获取所有非草稿文章，按时间排序
