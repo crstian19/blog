@@ -205,27 +205,27 @@ Son cinco pasos, los tres primeros se calculan y los dos últimos se miden:
 
 ## Preguntas frecuentes
 
-### Cuántas peticiones hace un agente como Claude Code
+### Cuántas peticiones hace un agente como Claude Code?
 
 En un dataset público de 393 sesiones reales de Claude Code salen de media unas 174 peticiones por sesión, con unos 101.000 tokens de entrada cada una. Más de la mitad las lanzan subagentes.
 
-### Qué es el prefix caching de vLLM
+### Qué es el prefix caching de vLLM?
 
 Es reutilizar la KV-caché del principio de una petición cuando ya se procesó hace poco, para hacer el prefill solo de lo nuevo. Con agentes es lo que más ayuda, en mi producción el 81 % de los tokens de entrada ya estaba en la caché.
 
-### Merece la pena activar MTP
+### Merece la pena activar MTP?
 
 Si tenéis pocos usuarios y respuestas largas, sí, porque acelera la escritura. Con muchos agentes y contexto largo no, gasta cálculo, retrasa el primer token y le quita memoria a las conversaciones.
 
-### llama.cpp o vLLM
+### llama.cpp o vLLM?
 
 llama.cpp para correr un modelo en casa, en cualquier GPU, CPU o Mac, con pocos usuarios. vLLM para servir a mucha gente a la vez en GPUs de servidor. Los dos hablan la API de OpenAI.
 
-### Qué cuantización GGUF elijo
+### Qué cuantización GGUF elijo?
 
 Q4_K_M, que usa la mitad de memoria que 8 bits perdiendo muy poco. Por debajo de 3 bits la calidad cae en picado.
 
-### Cuánta VRAM necesito para un LLM en local
+### Cuánta VRAM necesito para un LLM en local?
 
 La de los pesos, más la KV-caché de las conversaciones que queráis tener abiertas, más un poco para el motor. Con un modelo de 9B en Q4_K_M y 16 GB caben unos 560.000 tokens de conversación.
 
