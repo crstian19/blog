@@ -329,6 +329,6 @@ In my tests, the MoE: Qwen3.6-35B-A3B takes 10 KB per token against Qwen3.8-27B'
 
 ---
 
-I extended this talk at [Murcia Tech](https://murciatech.org) with agents, prefix caching, MTP and how to do the maths on a GPU at home: it's all in [Gigabytes vs tokens: LLM serving for agents and at home](/en/post/2026-10-23-gigas-vs-tokens-agents-local-llm/).
+I extended this talk at [Murcia Tech](https://murciatech.org) with agents, prefix caching, MTP and how to do the maths on a GPU at home: it's all in [Gigabytes vs tokens: deploying an LLM on your own infra](/en/post/2026-10-23-gigas-vs-tokens-agents-local-llm/).
 
 The slides and material from the talk are at [crstian.me/talks](https://crstian.me/talks). If you want to see this running with lots of people on it, drop by [NaN](https://nan.builders), the community that shares these GPUs, and if you sign up with <a href="https://cloud.nan.builders/r/76AS6C80?lang=en" target="_blank" rel="sponsored noopener noreferrer">my referral link</a> you get 5 % off your first month. And if you've got a weird p99 this week, write to me.
