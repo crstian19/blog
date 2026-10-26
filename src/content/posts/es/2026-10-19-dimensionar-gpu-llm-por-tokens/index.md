@@ -330,4 +330,4 @@ En mis pruebas, el MoE: Qwen3.6-35B-A3B ocupa 10 KB por token frente a los 34 KB
 
 Amplié esta charla en [Murcia Tech](https://murciatech.org) con agentes, prefix caching, MTP y cómo hacer la cuenta en una GPU de casa: lo cuento en [Gigas vs tokens: servir un LLM a agentes y en tu propia GPU](/post/2026-10-23-gigas-vs-tokens-agentes-llm-en-casa/).
 
-Las slides y el material de la charla están en [crstian.me/talks](https://crstian.me/talks). Si queréis ver esto funcionando con mucha gente encima, pasaos por [NaN](https://nan.builders), la comunidad que comparte estas GPUs. Y si tenéis un p99 raro esta semana, escribidme.
+Las slides y el material de la charla están en [crstian.me/talks](https://crstian.me/talks). Si queréis ver esto funcionando con mucha gente encima, pasaos por [NaN](https://nan.builders), la comunidad que comparte estas GPUs, y si os apuntáis con <a href="https://cloud.nan.builders/r/76AS6C80?lang=es" target="_blank" rel="sponsored noopener noreferrer">mi enlace de referido</a> tenéis un 5 % de descuento en el primer mes. Y si tenéis un p99 raro esta semana, escribidme.

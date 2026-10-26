@@ -11,7 +11,7 @@ import poster from './assets/peticion-de-principio-a-fin-poster.jpg'
 
 El jueves estuve dando la charla *Gigas vs tokens: desplegando un LLM en tu propia infra* en la **[Murcia Tech Talk](https://murciatech.org)**, en el CEEIM del Campus de Espinardo. Es la misma que llevé al AWS Community Day pero con dos partes nuevas, una sobre qué pasa cuando los que usan la GPU no son personas sino agentes, y otra sobre cómo hacer la misma cuenta con una gráfica de casa.
 
-Lo básico (qué es la KV-caché, qué hay dentro de una GPU de 96 GB, por qué hay dos límites y qué es una preemption) ya lo conté en [¿Cuántos usuarios aguanta tu GPU? Dimensionar un LLM por tokens](/post/2026-10-19-dimensionar-gpu-llm-por-tokens/), así que aquí lo resumo rápido y me centro en lo nuevo. Las slides las tenéis en [crstian.me/talks](https://crstian.me/talks).
+Los conceptos van enteros, porque sin ellos no se entiende nada de lo que viene después. La cuenta de qué hay dentro de una GPU de 96 GB, los dos límites y las preemptions ya las conté con detalle en [¿Cuántos usuarios aguanta tu GPU? Dimensionar un LLM por tokens](/post/2026-10-19-dimensionar-gpu-llm-por-tokens/), así que esa parte la resumo y me centro en lo nuevo. Las slides las tenéis en [crstian.me/talks](https://crstian.me/talks).
 
 Todos los números salen de las máquinas de [Helmcode](https://helmcode.com), o de producción o de un banco de pruebas con la misma GPU (una RTX PRO 6000 Blackwell de 96 GB), y en cada caso digo de cuál.
 
@@ -23,19 +23,108 @@ Todos los números salen de las máquinas de [Helmcode](https://helmcode.com), o
 - MTP acelera escribir, no leer. Con un agente va más rápido, con 32 el primer token tarda más del doble.
 - Para casa, llama.cpp y GGUF en 4 bits. En una gráfica de 16 GB caben unos 560.000 tokens con el modelo adecuado, que son cinco agentes o doscientos chats.
 
-## Lo básico, rápido
+## Los conceptos
 
-Que el modelo quepa en la GPU no te dice para cuánta gente sirve. Lo que llena la tarjeta en producción es la **KV-caché**, que es lo que el modelo guarda de cada token de cada conversación para no tener que recalcularlo. Los pesos se cargan una vez, la KV-caché va creciendo con cada token.
+Antes de entrar en la cuenta, cinco minutos de conceptos que salen todo el rato.
 
-Cuánto ocupa un token lo sacas del `config.json`. Con el modelo que uso, Qwen3.6-35B-A3B en NVFP4, son unos 10 KB porque solo 10 de sus 40 capas guardan memoria. Su primo denso, Qwen3.8-27B, siendo más pequeño ocupa 34 KB por token.
+### Todo se cuenta en tokens
 
-![Slide: en la misma GPU caben 6.082.932 tokens con el MoE y 1.905.817 con el denso](assets/tokens-misma-gpu.jpg)
+![Slide: la misma pregunta troceada en tokens, 10 en español y 8 en inglés](assets/tokens.jpg)
 
-En la misma GPU eso son 6,08 millones de tokens de conversación con uno y 1,9 millones con el otro. Y hay dos límites, los dos en tokens: cuántos caben, que es memoria y se calcula, y cuántos da tiempo a procesar, que es cálculo y hay que medirlo.
+Un modelo de lenguaje no ve palabras, ve tokens, que son trozos de texto. Este es el troceado de verdad con el tokenizador del modelo que tengo en producción: "Cuántos usuarios aguanta mi GPU" son cinco palabras y diez tokens, y la misma pregunta en inglés son ocho. La barra baja que llevan algunos trozos es el espacio de delante, que va pegado a la palabra.
+
+Los tokenizadores se entrenan sobre todo con texto en inglés, así que en español pagamos más tokens por lo mismo (la regla de que un token son unos tres cuartos de palabra es para inglés). Lo que le mandas al modelo es el prompt y lo que te devuelve es la respuesta, y las dos cosas se cuentan en tokens. El contexto son todos los tokens de una conversación, lo que ha dicho el usuario, lo que ha respondido el modelo y el historial entero, y cada modelo tiene un máximo que viene en su `config.json`. El que tengo en producción admite hasta 262.144.
+
+### Un modelo es un montón de números: parámetros, denso y MoE
+
+Esos números son los parámetros, o pesos, los valores que el modelo aprendió al entrenar. La B es de billion, miles de millones, así que un modelo 8B tiene ocho mil millones de parámetros. Se cargan enteros en la memoria de la GPU al arrancar y ya no cambian.
+
+Generar un token es pasarlo por el modelo capa a capa, multiplicándolo por sus pesos. En un modelo denso pasa por todos los parámetros. En un MoE (mezcla de expertos) cada capa tiene muchos expertos y un router que elige unos pocos para cada token, así que cada token solo pasa por una parte pequeña del modelo. Ocupa como uno grande y calcula como uno pequeño.
+
+Y cada parámetro ocupa según cómo lo guardes. El modelo sale del entrenamiento en 16 bits, dos bytes por parámetro, y cuantizar es guardarlo con menos bits: con 8 bits es un byte y con 4, medio. Se pierde algo de precisión y se gana mucha memoria. Lo que ocupa el modelo es fácil de calcular, parámetros por bytes por parámetro.
+
+### Todo esto viene en el nombre del modelo
+
+![Slide: el nombre Qwen3.6-35B-A3B-NVFP4 descompuesto en B, MoE y 4 bits, y el rival Qwen3.8-27B-NVFP4](assets/nombre-del-modelo.jpg)
+
+El modelo que tengo en producción, y el de toda la charla, es Qwen3.6-35B-A3B-NVFP4, y su nombre lleva justo esas tres cosas:
+
+- 35B son unos treinta y cinco mil millones de parámetros, que es lo que ocupa en memoria.
+- A3B son los activos, tres mil millones. Es un MoE con 256 expertos por capa, y el router elige 8 para cada token. Ojo, que los treinta y cinco tienen que estar cargados siempre, porque el siguiente token puede pedir cualquier experto.
+- NVFP4 es la cuantización, el formato de 4 bits de NVIDIA, medio byte por parámetro.
+
+Treinta y cinco mil millones por medio byte son unos 18 GB, y en la práctica son unos 20, porque no todo va en 4 bits: la atención va en FP8, los embeddings y el encoder de visión se quedan en 16 bits y cada bloque de 16 pesos guarda su escala.
+
+Como lo voy a comparar todo el rato, el otro es Qwen3.8-27B-NVFP4, de la misma familia. No lleva A porque es denso, en cada token trabajan sus veintisiete mil millones.
+
+### Prefill y decode: leer el prompt y escribir la respuesta
+
+![Slide: prefill lee el prompt en paralelo y lo mide el TTFT; decode escribe palabra a palabra y lo mide el ITL](assets/prefill-decode.jpg)
+
+Una petición tiene dos fases muy distintas, y la diferencia importa en todo lo que viene.
+
+El prefill es leer lo que le mandas, el prompt entero, de golpe y en paralelo. Con un prompt de cien mil tokens es mucho cálculo y tarda. Lo que tarda en salir la primera palabra se llama TTFT (tiempo hasta el primer token), que es la cola más el prefill.
+
+El decode es escribir la respuesta palabra a palabra. Para cada palabra nueva la GPU se lee el modelo entero de su memoria, y aquí lo que limita no es el cálculo, es lo rápido que se lee la memoria (los GB/s de la tarjeta). El ritmo de salida se mide como ITL, el tiempo entre un token y el siguiente.
+
+### La KV-caché
+
+![Slide: los pesos se cargan una vez y la KV-caché crece con cada token de cada usuario](assets/kv-cache.jpg)
+
+Para mí es el concepto más importante de la charla. Para generar cada palabra el modelo vuelve a mirar toda la conversación anterior, y como recalcularla entera cada vez sería lentísimo, guarda un resumen de cada token que ya ha visto. Ese almacén es la KV-caché (por key y value, los dos vectores que guarda por token).
+
+Y crece con cada token que escribe el usuario y con cada token que responde el modelo. Cada usuario que entra ocupa su propio sitio, y esa memoria no se libera hasta que termina su petición.
+
+### Cuantizar: más cabe y más rápido va
+
+![Slide: los pesos pasan a 20,4 GiB en NVFP4 y la KV-caché a 10 KB por token en FP8](assets/cuantizacion.jpg)
+
+En 16 bits mi Qwen de 35B ocuparía unos 65 GiB, y en NVFP4 se queda en 20,4.
+
+La KV-caché también se cuantiza, y es otra decisión aparte. En 16 bits cada token ocuparía 20 KB y yo la tengo en FP8, a 10 KB, con lo que en los mismos 61 GiB caben el doble de tokens, 6 millones en vez de 3. Para dimensionar es la que más pesa. Y además va más rápido, porque en el decode hay menos bytes que leer en cada paso.
+
+Eso sí, cuantizar la KV-caché puede dar bastantes problemas. Se pierde precisión en lo que el modelo recuerda de la conversación y se nota más cuanto más larga es, así que yo mediría la calidad antes de cambiar de formato.
+
+### Lo que se pierde al pasar a 4 bits
+
+![Slide: tabla de benchmarks de NVIDIA, BF16 frente a NVFP4, con una pérdida máxima de 0,8 puntos](assets/cuantizacion-benchmarks.jpg)
+
+Esta es la tabla que publica NVIDIA para mi modelo, el mismo NVFP4 que tengo en producción: ocho benchmarks, en 16 bits y en 4. Lo máximo que pierde son ocho décimas, en contexto largo nada, y en dos sube (que es ruido de la medida).
+
+La cosa es que hay que mirar de dónde sale. Lo midió NVIDIA con benchmarks en inglés, y para cuantizar calibró con noticias de la CNN, también en inglés. El número del benchmark no es el vuestro, antes de cambiar de formato probadlo con vuestras tareas y en vuestro idioma, porque puede variar bastante.
+
+### Batching: leer el modelo para uno o para 128 cuesta lo mismo
+
+![Slide: un paso de decode con 1, 8 y 128 conversaciones; el total sube y lo que recibe cada usuario baja](assets/batching.jpg)
+
+En cada paso de decode la GPU se lee el modelo una vez, da igual para cuántas conversaciones, y saca una palabra para cada una. Lo medí en el banco de pruebas con el denso de 27B, con prompts de 2.000 tokens y respuestas de 500:
+
+| Conversaciones a la vez | Tokens/s por usuario | Tokens/s en total | Cada paso |
+|---|---|---|---|
+| 1 | 64 | 64 | ~16 ms |
+| 8 | ~60 | ~470 | casi igual |
+| 128 | 12 | ~1.570 | 81 ms |
+
+Con ocho a la vez el paso casi no crece, es trabajo casi gratis (como una paella para 128, encender el fuego cuesta lo mismo para uno que para todos). Con 128 la KV-caché y las cuentas de cada conversación ya pesan más que leer el modelo, cada paso tarda unas cinco veces más y a cada persona le llegan 12 tokens por segundo.
+
+El máximo de conversaciones a la vez lo pone el operador con `--max-num-seqs`, y yo lo tengo en 128. Es una decisión de producto, más gente o más rápido para cada uno.
+
+### Si vienes de infra, ya sabes servir esto
+
+Todo esto ya lo conocéis con otros nombres:
+
+| Inferencia | Lo que ya conocéis |
+|---|---|
+| vLLM | el motor, un gunicorn especializado con API de OpenAI, `/metrics` y `/health` |
+| LiteLLM | el API gateway de delante: keys, equipos y presupuestos |
+| `max-num-seqs` | el `maxConnections`: cuántas conversaciones a la vez |
+| KV-caché | la sesión de cada conexión en RAM, que crece con cada mensaje y no se libera hasta cerrarla |
+| preemption | un eviction: se echa una conversación para hacer sitio y vuelve a la cola |
+| TTFT · ITL | vuestra latencia: lo que tarda la primera palabra y el hueco entre palabras |
 
 ## Una petición de principio a fin
 
-Esta slide es nueva y es la que más me gusta, porque junta todos los conceptos siguiendo el viaje de una sola petición:
+Esta slide es nueva y es la que más me gusta, porque junta todos los conceptos de arriba siguiendo el viaje de una sola petición:
 
 <video
   src={video}
@@ -55,6 +144,14 @@ Esta slide es nueva y es la que más me gusta, porque junta todos los conceptos 
 4. En el prefill se lee todo lo nuevo de golpe. Los núcleos de la GPU traen los pesos de la memoria, hacen las cuentas de todos los tokens nuevos a la vez y guardan su KV-caché. Cuando sale la primera palabra, eso es el TTFT.
 5. En el decode sale una palabra por paso. En cada paso los núcleos traen los pesos una sola vez para todas las conversaciones, más la KV-caché de cada una, y sacan una palabra para cada una. El ritmo al que salen es el ITL.
 6. Cuando acaba, su KV-caché se queda como caché por si la siguiente petición empieza igual, hasta que otra conversación necesite el sitio.
+
+## La cuenta, en corto
+
+Que el modelo quepa en la GPU no te dice para cuánta gente sirve. Cuánto ocupa un token lo sacas del `config.json`, y con mi modelo son unos 10 KB porque solo 10 de sus 40 capas guardan memoria. Su primo denso, Qwen3.8-27B, siendo más pequeño ocupa 34 KB por token.
+
+![Slide: en la misma GPU caben 6.082.932 tokens con el MoE y 1.905.817 con el denso](assets/tokens-misma-gpu.jpg)
+
+En la misma GPU eso son 6,08 millones de tokens de conversación con uno y 1,9 millones con el otro. Y hay dos límites, los dos en tokens: cuántos caben, que es memoria y se calcula, y cuántos da tiempo a procesar, que es cálculo y hay que medirlo. El detalle de la cuenta está en el [post del AWS Community Day](/post/2026-10-19-dimensionar-gpu-llm-por-tokens/).
 
 ## Un agente no es un chat
 
@@ -231,4 +328,4 @@ La de los pesos, más la KV-caché de las conversaciones que queráis tener abie
 
 ---
 
-Si queréis ver esto funcionando con mucha gente encima, pasaos por [NaN](https://nan.builders). Y gracias a [Murcia Tech](https://murciatech.org) por invitarme.
+Si queréis ver esto funcionando con mucha gente encima, pasaos por [NaN](https://nan.builders), y si os apuntáis con <a href="https://cloud.nan.builders/r/76AS6C80?lang=es" target="_blank" rel="sponsored noopener noreferrer">mi enlace de referido</a> tenéis un 5 % de descuento en el primer mes. Y gracias a [Murcia Tech](https://murciatech.org) por invitarme.
