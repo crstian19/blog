@@ -12,7 +12,7 @@ import poster from './assets/peticion-de-principio-a-fin-poster.jpg'
 
 On Thursday I gave the talk *Gigas vs tokens: deploying an LLM on your own infrastructure* at the **[Murcia Tech Talk](https://murciatech.org)**, at CEEIM on the Espinardo campus. It's the same talk I took to AWS Community Day, extended with two new parts: what happens when the ones using the GPU aren't people but agents, and how to do the same maths on a card you can have at home.
 
-The basics (what the KV cache is, what's inside a 96 GB GPU, why there are two limits and what a preemption is) are covered in detail in [How many users can your GPU serve? Sizing an LLM by tokens](/en/post/2026-10-19-sizing-llm-gpu-by-tokens/). Here I sum them up and focus on what's new. The full deck is at [crstian.me/talks](https://crstian.me/talks) (the slides are in Spanish).
+The concepts are all here, because nothing after them makes sense without them. What's inside a 96 GB GPU, the two limits and preemptions are covered in detail in [How many users can your GPU serve? Sizing an LLM by tokens](/en/post/2026-10-19-sizing-llm-gpu-by-tokens/), so I sum that part up and focus on what's new. The full deck is at [crstian.me/talks](https://crstian.me/talks) (the slides are in Spanish).
 
 As always, the numbers come from [Helmcode](https://helmcode.com)'s machines: production, or a test bench with the same GPU, an RTX PRO 6000 Blackwell with 96 GB, and I say which each time.
 
@@ -24,19 +24,107 @@ As always, the numbers come from [Helmcode](https://helmcode.com)'s machines: pr
 - **MTP speeds up writing, not reading.** With one agent it's faster; with 32, the first token takes more than twice as long.
 - **At home, llama.cpp and 4-bit GGUF.** With the right model, a 16 GB card fits about 560,000 tokens: five agents or two hundred chats.
 
-## The basics, in two minutes
+## The concepts
 
-Fitting the model on the GPU doesn't tell you how many people it can serve. What fills the card in production is the **KV cache**: what the model keeps for every token of every conversation so it doesn't have to recompute it. The weights load once; the KV cache grows with every token.
+Before getting into the maths, five minutes of concepts that come up all the time.
 
-How much one token takes comes from `config.json`. For my model, Qwen3.6-35B-A3B in NVFP4, it's about 10 KB, because only 10 of its 40 layers keep memory. Its dense sibling, Qwen3.8-27B, takes 34 KB per token despite being smaller.
+### Everything is counted in tokens
 
-![Slide: the same GPU fits 6,082,932 tokens with the MoE and 1,905,817 with the dense model](assets/tokens-misma-gpu.jpg)
+![Slide: the same question split into tokens, 10 in Spanish and 8 in English](assets/tokens.jpg)
 
-On the same GPU, that's 6.08 million tokens of conversation with one and 1.9 million with the other. And there are two limits, both measured in tokens: **how many fit** (memory, you calculate it) and **how many there's time to process** (compute, you measure it).
+A language model doesn't see words, it sees tokens: chunks of text. This is the real split with the tokenizer of the model I run in production: "¿Cuántos usuarios aguanta mi GPU?" is five words and ten tokens, and the same question in English is eight. The underscore some chunks carry is the space in front, which is glued to the word.
+
+Tokenizers are trained mostly on English text, so other languages pay more tokens for the same thing (the rule of thumb that a token is about three quarters of a word is for English). What you send the model is the prompt and what you get back is the response, and both are counted in tokens. The context is every token in a conversation: what the user said, what the model answered, the whole history. Every model has a maximum in its `config.json`. The one I run in production takes up to 262,144.
+
+### A model is a pile of numbers: parameters, dense and MoE
+
+Those numbers are the parameters, or weights: the values the model learned in training. The B stands for billion, so an 8B model has eight billion parameters. They load fully into GPU memory at startup and don't change after that.
+
+Generating a token means passing it through the model layer by layer, multiplying it by the weights. In a dense model it goes through every parameter. In an MoE (mixture of experts) each layer has many experts and a router picks a few for each token, so each token only goes through a small part of the model. It takes up memory like a big model and computes like a small one.
+
+And each parameter takes up space depending on how you store it. The model comes out of training in 16 bits, two bytes per parameter, and quantizing means storing it with fewer bits: 8 bits is one byte, 4 bits half a byte. You lose some precision and gain a lot of memory. So how much the model takes is easy to work out: parameters × bytes per parameter.
+
+### It's all in the model's name
+
+![Slide: the name Qwen3.6-35B-A3B-NVFP4 broken into B, MoE and 4 bits, and the rival Qwen3.8-27B-NVFP4](assets/nombre-del-modelo.jpg)
+
+The model I run in production, and the one in the whole talk, is Qwen3.6-35B-A3B-NVFP4, and its name carries exactly those three things:
+
+- 35B is about thirty-five billion parameters: what it takes up in memory.
+- A3B is the active ones, three billion. It's an MoE with 256 experts per layer, and the router picks 8 for each token. All thirty-five billion still have to stay loaded, because the next token can ask for any expert.
+- NVFP4 is the quantization, NVIDIA's 4-bit format: half a byte per parameter.
+
+Thirty-five billion at half a byte is about 18 GB, and in practice it's about 20, because not everything is in 4 bits: attention is FP8, the embeddings and the vision encoder stay in 16 bits, and every block of 16 weights stores its scale.
+
+Since I compare against it all the time, the other one is Qwen3.8-27B-NVFP4, from the same family. It has no A because it's dense: all twenty-seven billion work on every token.
+
+### Prefill and decode: reading the prompt, writing the answer
+
+![Slide: prefill reads the prompt in parallel and shows up in TTFT; decode writes word by word and shows up in ITL](assets/prefill-decode.jpg)
+
+A request has two very different phases, and the difference matters for everything that follows:
+
+- **Prefill** is reading what you send: the whole prompt, at once, in parallel. With a hundred-thousand-token prompt that's a lot of compute and it takes a while. How long the first word takes is called TTFT (time to first token), which is queue time plus prefill.
+- **Decode** is writing the answer word by word. For every new word the GPU reads the whole model from its memory, so what limits it isn't compute but how fast memory can be read (the card's GB/s). The output pace is measured as ITL, the time between one token and the next.
+
+### The KV cache
+
+![Slide: the weights load once and the KV cache grows with every token of every user](assets/kv-cache.jpg)
+
+This is the most important concept in the talk. To generate each word, the model looks back at the whole conversation, and recomputing it every time would be painfully slow, so it keeps a summary of every token it has seen. That store is the KV cache (for key and value, the two vectors it keeps per token).
+
+It grows with every token the user writes and every token the model answers. Every user who comes in takes their own space, and that memory isn't freed until their request finishes.
+
+### Quantization: more fits and it goes faster
+
+![Slide: the weights go down to 20.4 GiB in NVFP4 and the KV cache to 10 KB per token in FP8](assets/cuantizacion.jpg)
+
+In 16 bits my 35B Qwen would take about 65 GiB. In NVFP4 it's 20.4.
+
+The KV cache is quantized too, and that's a separate decision. In 16 bits each token would take 20 KB; I run it in FP8, at 10 KB, so the same 61 GiB hold twice as many tokens: 6 million instead of 3. For sizing, this is the one that matters most. It's also faster, because decode has fewer bytes to read on every step.
+
+That said, quantizing the KV cache can cause real quality problems. You lose precision in what the model remembers of the conversation, and it shows more the longer it gets, so measure quality before you switch formats.
+
+### What you lose going to 4 bits
+
+![Slide: NVIDIA's benchmark table, BF16 versus NVFP4, with a maximum loss of 0.8 points](assets/cuantizacion-benchmarks.jpg)
+
+This is the table NVIDIA publishes for my model, the same NVFP4 I run in production: eight benchmarks, in 16 bits and in 4. The biggest loss is eight tenths of a point, long context loses nothing, and two scores go up (measurement noise).
+
+The catch is where it comes from. NVIDIA measured it with English benchmarks, and calibrated the quantization on CNN news, also in English. So the benchmark number isn't yours: before you switch formats, test it on your own tasks and in your own language, because it can vary a lot.
+
+### Batching: reading the model for one or for 128 costs the same
+
+![Slide: one decode step with 1, 8 and 128 conversations; the total goes up and what each user gets goes down](assets/batching.jpg)
+
+On each decode step the GPU reads the model once, no matter how many conversations there are, and produces one word for each. I measured it on the test bench with the dense 27B, with 2,000-token prompts and 500-token answers:
+
+| Conversations at once | Tokens/s per user | Tokens/s total | Each step |
+|---|---|---|---|
+| 1 | 64 | 64 | ~16 ms |
+| 8 | ~60 | ~470 | almost the same |
+| 128 | 12 | ~1,570 | 81 ms |
+
+With eight at once the step barely grows: almost free work (like a paella for 128, lighting the fire costs the same for one as for everyone). With 128, the KV cache and each conversation's maths outweigh reading the model, every step takes about five times longer, and each person gets 12 tokens per second.
+
+The operator sets the maximum number of conversations at once with `--max-num-seqs`. I have it at 128. It's a product decision: more people, or faster for each one.
+
+### If you come from infrastructure, you already know how to serve this
+
+You already know all of this under other names:
+
+| Inference | What you already know |
+|---|---|
+| vLLM | the engine: a specialised gunicorn with an OpenAI API, `/metrics` and `/health` |
+| LiteLLM | the API gateway in front: keys, teams and budgets |
+| `max-num-seqs` | `maxConnections`: how many conversations at once |
+| KV cache | each connection's session in RAM, growing with every message and not freed until it closes |
+| preemption | an eviction: a conversation is kicked out to make room and goes back to the queue |
+| TTFT · ITL | your latency: how long the first word takes and the gap between words |
 
 ## One request from start to finish
 
-This slide is new in this version. It puts every concept together in the journey of a single request:
+This slide is new in this version. It puts every concept above together in the journey of a single request:
 
 <video
   src={video}
@@ -56,6 +144,14 @@ This slide is new in this version. It puts every concept together in the journey
 4. **Prefill: the new part is read at once.** The GPU cores fetch the weights from memory, do the maths for all the new tokens together and store their KV cache. The first word comes out: that's the TTFT.
 5. **Decode: one word per step.** On every step the cores fetch the weights once for all conversations, plus each conversation's KV cache, and produce one word for each. The pace is the ITL.
 6. **When it's done, its KV cache stays** as cache, in case the next request starts the same way, until another conversation needs the space.
+
+## The maths, briefly
+
+Fitting the model on the GPU doesn't tell you how many people it can serve. How much one token takes comes from `config.json`: for my model it's about 10 KB, because only 10 of its 40 layers keep memory. Its dense sibling, Qwen3.8-27B, takes 34 KB per token despite being smaller.
+
+![Slide: the same GPU fits 6,082,932 tokens with the MoE and 1,905,817 with the dense model](assets/tokens-misma-gpu.jpg)
+
+On the same GPU, that's 6.08 million tokens of conversation with one and 1.9 million with the other. And there are two limits, both measured in tokens: how many fit (memory, you calculate it) and how many there's time to process (compute, you measure it). The full maths is in the [AWS Community Day post](/en/post/2026-10-19-sizing-llm-gpu-by-tokens/).
 
 ## An agent isn't a chat
 
@@ -232,4 +328,4 @@ Enough for the weights, plus the KV cache of the conversations you want open, pl
 
 ---
 
-If you want to see this running with lots of people on it, drop by [NaN](https://nan.builders). And thanks to [Murcia Tech](https://murciatech.org) for having me.
+If you want to see this running with lots of people on it, drop by [NaN](https://nan.builders), and if you sign up with <a href="https://cloud.nan.builders/r/76AS6C80?lang=en" target="_blank" rel="sponsored noopener noreferrer">my referral link</a> you get 5 % off your first month. And thanks to [Murcia Tech](https://murciatech.org) for having me.
