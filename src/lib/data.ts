@@ -33,10 +33,16 @@ export function postsSort(posts: Post[]) {
   })
 }
 
+// A post is live once it is not a draft and its pubDate has arrived. A future
+// pubDate schedules it: the daily scheduled-publish workflow rebuilds the site
+// on that day. Drafts and scheduled posts still render in `astro dev`.
+export function isPublished(post: Post): boolean {
+  return !post.data.draft && post.data.pubDate.getTime() <= Date.now()
+}
+
 async function getPublishedPosts(): Promise<Post[]> {
   const allPosts = await getCollection('posts')
-  // Drafts only render in `astro dev`, so they can be previewed before publishing.
-  return allPosts.filter((post) => import.meta.env.DEV || !post.data.draft)
+  return allPosts.filter((post) => import.meta.env.DEV || isPublished(post))
 }
 
 // 获取所有非草稿文章，按时间排序
