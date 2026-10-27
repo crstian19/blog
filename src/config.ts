@@ -3,6 +3,7 @@ import type {
   CommentConfig,
   GithubConfig,
   Link,
+  NewsletterConfig,
   PhotosConfig,
   PostConfig,
   Site,
@@ -209,6 +210,15 @@ export const COMMENT_CONFIG: CommentConfig = {
     categoryId: 'DIC_kwDOEBSfts4DHgvf',
     themes: { light: 'light', dark: 'transparent_dark' },
   },
+}
+
+// Newsletter on listmonk in the mew cluster (mew-yamls: mew/apps/listmonk). The form posts
+// straight to listmonk, which sends the double opt-in email, so it stays off until listmonk
+// has SMTP. The list UUIDs come from listmonk's Lists page (one public list per language).
+export const NEWSLETTER_CONFIG: NewsletterConfig = {
+  enabled: false,
+  action: 'https://newsletter.crstian.me/subscription/form',
+  lists: { es: '', en: '' },
 }
 
 export const ANALYTICS_CONFIG: AnalyticsConfig = {
