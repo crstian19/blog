@@ -1,40 +1,125 @@
 ---
-title: Correlación de Métricas y Logs en Grafana y Loki
-description: La correlación de métricas y logs en Grafana, utilizando herramientas como Loki, es un proceso que permite a los usuarios y administradores de sistemas…
+title: Correlación de métricas y logs en Grafana y Loki
+description: 'Cómo pasar de un pico en una gráfica de Prometheus a los logs que lo explican en Loki: etiquetas comunes, data links, métricas sacadas de logs con LogQL y el fallo de relabel que lo rompe todo.'
 pubDate: 2024-05-02
+updatedDate: 2026-10-27
 tags:
 - Loki
 - grafana
 - logs
+- prometheus
+- alloy
 - kubernetes
 - monitoring
 - k8s
 ---
 
-La correlación de métricas y logs en Grafana, utilizando herramientas como Loki, es un proceso que permite a los usuarios y administradores de sistemas vincular información de monitoreo (métricas) con registros de eventos (logs) para obtener una comprensión más integral del comportamiento y el rendimiento de sus sistemas y aplicaciones.
+En este post vamos a ver como pasar de un pico en una gráfica de Prometheus a los logs que lo explican en Loki, sin ir copiando a mano nombres de pods y horas de una pestaña a otra.
 
-## Conceptos Básicos:
+Grafana no correlaciona nada por arte de magia. Para unir una métrica con un log solo tiene dos cosas: el rango de tiempo y las etiquetas que comparten los dos. El tiempo lo pone el dashboard, así que casi todo el trabajo está en que las etiquetas sean las mismas en Prometheus y en Loki.
 
-- **Métricas**: Son medidas cuantitativas que proporcionan información sobre el rendimiento de un sistema. Ejemplos incluyen el uso de CPU, memoria, latencia de red, y más. En Grafana, estas se suelen visualizar en dashboards utilizando series de tiempo.
+## Las etiquetas tienen que llamarse igual en los dos lados
 
-- **Logs**: Son registros de eventos que ocurren dentro de una aplicación o sistema. Contienen información detallada sobre el funcionamiento del sistema, errores, transacciones, etc. Loki es una herramienta popular para manejar logs, permitiendo su almacenamiento, búsqueda y visualización.
+Si en Prometheus la serie es `container_memory_working_set_bytes{namespace="immich", pod="immich-server-7c9d8f6b5-x2k4p"}` y en Loki el stream es `{k8s_namespace_name="immich"}`, Grafana no tiene forma de saber que hablan del mismo sitio. Lo mínimo es que `namespace` y `app` se llamen igual y tengan los mismos valores en las métricas y en los logs.
 
-## Correlación en Grafana y Loki:
+Con `pod` hay que ir con cuidado. En Prometheus es una etiqueta más, pero en Loki cada valor distinto de una etiqueta crea un stream nuevo, y el nombre del pod cambia en cada despliegue. En el plan que hice para los logs de mi cluster dejé como etiquetas solo `namespace`, `app` y `level`, y lo que tiene muchos valores (pod, request ID…) se busca con un filtro de texto o, desde Loki 3, como structured metadata, que se puede filtrar sin crear streams nuevos:
 
-1. **Integración de Datos**: Grafana permite integrar métricas y logs en un solo dashboard. Por ejemplo, puedes tener gráficos de series de tiempo mostrando el uso de recursos junto con paneles que muestran logs relevantes.
+```logql
+{namespace="immich", app="immich-server"} | pod="immich-server-7c9d8f6b5-x2k4p"
+```
 
-2. **Búsqueda Contextual**: Al examinar métricas específicas, como un pico en el uso de CPU, puedes realizar consultas en Loki para encontrar logs durante ese período específico. Esto ayuda a identificar rápidamente la causa raíz de los problemas observados en las métricas.
+## El orden de las reglas de relabel
 
-3. **Enriquecimiento de Logs**: Loki permite el enriquecimiento de logs con etiquetas y metadatos, lo que facilita su correlación con métricas específicas. Por ejemplo, puedes etiquetar logs con información sobre el entorno, el servicio o la instancia de la aplicación, facilitando su búsqueda y correlación con métricas.
+Aunque las dos configs saquen `app` de las labels de Kubernetes, es fácil que acaben con valores distintos. Este es un trozo real de la config de Alloy que tenía para los logs:
 
-4. **Alertas y Análisis**: Grafana permite configurar alertas basadas en métricas y logs. Por ejemplo, una alerta de alto uso de CPU puede correlacionarse con logs de errores específicos, proporcionando una visión más detallada de posibles problemas.
+```alloy
+// App - Prioridad 1: app.kubernetes.io/name
+rule {
+  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_name"]
+  target_label  = "app"
+  regex         = "(.+)"
+}
 
-5. **Visualización Temporal**: La capacidad de Grafana para visualizar datos temporales facilita la correlación visual. Puedes ver cómo los eventos registrados en los logs se alinean con cambios en las métricas a lo largo del tiempo.
+// App - Prioridad 2: app.kubernetes.io/instance
+rule {
+  source_labels = ["__meta_kubernetes_pod_label_app_kubernetes_io_instance"]
+  target_label  = "app"
+  regex         = "(.+)"
+}
 
-## Buenas Prácticas:
+// App - Prioridad 4: extraer del nombre del pod
+rule {
+  source_labels = ["__meta_kubernetes_pod_name"]
+  target_label  = "app"
+  regex         = "^([a-z0-9-]+?)-[a-z0-9]{8,10}-[a-z0-9]{5}$"
+  replacement   = "$1"
+}
+```
 
-- **Consistencia en Etiquetado**: Mantén una nomenclatura consistente para etiquetas tanto en métricas como en logs.
-- **Tiempo Sincronizado**: Asegúrate de que las marcas de tiempo en métricas y logs estén sincronizadas para facilitar la correlación.
-- **Dashboards Integrados**: Diseña dashboards que combinen métricas y logs de manera que reflejen la relación entre los distintos tipos de datos.
+Los comentarios dicen "prioridad 1, 2, 4", pero relabel no funciona así. Las reglas se aplican en orden y cada `replace` que hace match sobrescribe lo anterior, así que gana **la última** que encaja, no la primera. Un pod de un Deployment siempre encaja con la regex del nombre del pod, de modo que en los logs `app` acaba siendo el nombre del Deployment aunque el pod tenga `app.kubernetes.io/name`.
 
-En resumen, la correlación de métricas y logs en Grafana, aprovechando herramientas Loki, proporciona una visión integral del estado y el rendimiento de los sistemas, permitiendo identificar y resolver problemas de manera más eficiente y efectiva.
+Mientras tanto, en la parte de métricas de esa misma config solo estaba la regla de `app.kubernetes.io/name`. Por ejemplo, un pod con `app.kubernetes.io/name=server` sale en Prometheus con `app="server"` y en Loki con otro valor, y cualquier enlace de uno a otro devuelve cero logs.
+
+La solución es ordenar las reglas de menos a más preferida (la buena al final) y usar el mismo bloque de reglas para métricas y para logs. Si no te fías, compara los valores de los dos lados en Explore antes de montar ningún enlace.
+
+## Un clic de la gráfica a los logs: data links
+
+Con las etiquetas alineadas, lo más útil es un data link en los paneles de Prometheus. Haces clic en un punto de la gráfica y te lleva a un dashboard de logs con el mismo namespace, la misma app y el mismo rango de tiempo:
+
+```
+/d/logs-app/logs?var-namespace=${__field.labels.namespace}&var-app=${__field.labels.app}&${__url_time_range}
+```
+
+El dashboard de destino tiene dos variables, `namespace` y `app`, y un panel de logs con `{namespace="$namespace", app="$app"}`. `__field.labels.<label>` coge el valor de la etiqueta de la serie en la que has hecho clic y `__url_time_range` pasa el rango de tiempo. Ojo con el `&` antes de `__url_time_range`: Grafana no lo pone solo, lo tienes que escribir tú.
+
+Para Explore está también la función de Correlations, que hace lo mismo pero desde los resultados de una query en lugar de desde un panel, y se puede provisionar junto al data source.
+
+## Métricas sacadas de los logs
+
+La otra mitad de la correlación es poner los logs en la misma gráfica que las métricas. LogQL convierte logs en series temporales, y con el data source `-- Mixed --` puedes pintar en un solo panel la memoria de un pod y los errores que escupe:
+
+```logql
+sum by (app) (count_over_time({namespace="immich", level="error"} [5m]))
+```
+
+Esto solo funciona si el agente saca `level` del log y lo pone como etiqueta (en Alloy, con `stage.json` o `stage.regex` y luego `stage.labels`). Si tus logs llevan la duración de cada petición, también puedes sacar percentiles:
+
+```logql
+quantile_over_time(0.99,
+  {namespace="ingress"} | json | __error__ = "" | unwrap request_time [1m]
+) by (path)
+```
+
+`count_over_time` no admite `unwrap` porque solo cuenta líneas. Si quieres sumar valores de un campo, es `sum_over_time` con `unwrap`.
+
+## Si además tienes trazas
+
+Si tus logs llevan el ID de la traza, un derived field en el data source de Loki convierte ese ID en un enlace a Tempo:
+
+```yaml
+apiVersion: 1
+datasources:
+  - name: Loki
+    type: loki
+    url: http://loki-gateway.monitoring.svc
+    jsonData:
+      derivedFields:
+        - name: TraceID
+          matcherRegex: "traceID=(\\w+)"
+          datasourceUid: tempo
+          url: '$${__value.raw}'
+          urlDisplayLabel: Ver traza
+```
+
+El `$$` es a propósito: en los ficheros de provisioning un `$` suelto se interpreta como variable de entorno.
+
+## Lo que descuadra la correlación
+
+Lo primero es la hora. Si el agente no parsea el timestamp de la propia línea, Loki guarda la hora a la que la leyó, y con un agente que se queda atrás los logs salen desplazados respecto a la gráfica. En Alloy se arregla con `stage.timestamp`.
+
+Lo segundo, las etiquetas de más. Cada etiqueta con muchos valores multiplica los streams y hace las queries más lentas y caras, y para correlacionar te bastan las que compartes con Prometheus.
+
+Y si todavía recoges los logs con Promtail, toca migrar. Está deprecado desde Loki 3 y llegó a fin de vida el 2 de marzo de 2026. Alloy trae un conversor, `alloy convert --source-format=promtail`, que pasa la config de Promtail a la suya.
+
+Hoy en mi cluster ya no uso Loki: los logs van con Vector a VictoriaLogs y las métricas a VictoriaMetrics. Lo de las etiquetas sigue igual, porque cualquier herramienta que quiera unir métricas y logs necesita que los dos lados hablen de lo mismo con los mismos nombres.
+<!-- TODO Cristian: por qué cambiaste Loki por VictoriaLogs (una frase, si te apetece contarlo) -->
