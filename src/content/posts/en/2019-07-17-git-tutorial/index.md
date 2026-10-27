@@ -2,6 +2,7 @@
 title: Github for noobies 🤔
 description: In this post we are going to see how to create our first repository and have our code ordered in Github. We are going to learn the basics and the necessary…
 pubDate: 2019-07-17
+cover: assets/1-OY34A4uBsawmGoqpBV3UaA.png
 tags:
 - Git
 - Github

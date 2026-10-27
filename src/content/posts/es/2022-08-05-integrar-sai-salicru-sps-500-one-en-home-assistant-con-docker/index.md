@@ -2,6 +2,7 @@
 title: Integrar SAI Salicru SPS 500 ONE en Home Assistant con Docker
 description: Como integrar SAI Salicru SPS 500 ONE en Home Assistant con Docker.
 pubDate: 2022-08-05
+cover: assets/SalicruHASS.gif
 tags:
 - SAI
 - Home Assistant

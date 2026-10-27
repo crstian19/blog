@@ -2,6 +2,7 @@
 title: Cambiar router Sercomm FG824CD Pepephone por router neutro con OpenWRT Pepephone
 description: Bueno, he decidido redactar este post ya que tengo un post antiguo donde explico como cambiar el router anterior que daba Pepephone por un router neutro.
 pubDate: 2022-01-15
+cover: assets/ONTNOKIA.png
 tags:
 - Pepephone
 - OpenWRT
