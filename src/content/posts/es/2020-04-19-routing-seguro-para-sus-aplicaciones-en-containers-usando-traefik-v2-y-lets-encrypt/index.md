@@ -2,6 +2,7 @@
 title: Routing seguro para tus aplicaciones en containers usando Traefik v2 con Let's Encrypt
 description: Configurar traefik v2 para routing seguro como proxy reverso con HTTPS
 pubDate: 2020-04-19
+cover: assets/traefik-architecture.png
 tags:
 - Traefik
 - Reverse Proxy

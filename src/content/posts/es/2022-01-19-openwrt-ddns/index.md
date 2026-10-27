@@ -2,6 +2,7 @@
 title: Configurar DDNS en OpenWrt Cloudflare
 description: Si tienes servicios en tu casa como es mi caso, tu compañía seguramente te de IP pública dinámica, por lo que es un follón tener que estar cambiando a mano la…
 pubDate: 2022-01-10
+cover: assets/Ddns-Done.png
 tags:
 - OpenWRT
 - DDns

@@ -2,6 +2,7 @@
 title: Minar Ethereum desde Linux y Windows en nanopool
 description: En es post vamos a ver como minar Ethereum con nanopool.org en linux y en windows.
 pubDate: 2019-07-19
+cover: assets/nanominer.png
 tags:
 - Ethereum
 - Mining

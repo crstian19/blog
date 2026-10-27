@@ -2,6 +2,7 @@
 title: Using Drone CI/CD with Traefik on NixOS
 description: In this post we are going to see how to configure our own CI/CD environment with Drone, integrated with Traefik as reverse proxy and NixOS as operating system…
 pubDate: 2021-01-15
+cover: assets/Drone.jpg
 tags:
 - Drone
 - CI

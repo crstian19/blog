@@ -2,6 +2,7 @@
 title: Logitech G502 Linux
 description: How to configure and use Logitech G502 on Arch Linux
 pubDate: 2019-07-28
+cover: assets/Buttons.png
 tags:
 - Logitech G502
 - Linux
