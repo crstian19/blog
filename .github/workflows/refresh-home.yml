@@ -1,0 +1,49 @@
+name: Refresh crstian.me
+
+# The home page of crstian.me lists the latest posts from this blog's feed,
+# read at build time. After a push, wait for the new deploy to be live (the
+# feed's lastBuildDate changes) and then rebuild crstian.me.
+on:
+  push:
+    branches:
+      - Main
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: refresh-home
+  cancel-in-progress: true
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FEED: https://blog.crstian.me/en/index.xml
+      HOOK: ${{ secrets.CF_PAGES_DEPLOY_HOOK }}
+    steps:
+      - name: Wait for the blog deploy
+        run: |
+          build_date() {
+            curl -fsS "$FEED?t=$(date +%s)" | grep -o '<lastBuildDate>[^<]*' || true
+          }
+          before=$(build_date)
+          echo "Feed built at: ${before#<lastBuildDate>}"
+          for _ in $(seq 60); do
+            sleep 15
+            now=$(build_date)
+            if [ -n "$now" ] && [ "$now" != "$before" ]; then
+              echo "New deploy live: ${now#<lastBuildDate>}"
+              exit 0
+            fi
+          done
+          echo "Feed unchanged after 15 minutes, rebuilding anyway"
+      - name: Trigger crstian.me rebuild
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "CF_PAGES_DEPLOY_HOOK not set, skipping"
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "crstian.me rebuild triggered"
