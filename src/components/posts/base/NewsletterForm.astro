@@ -1,0 +1,42 @@
+---
+import { NEWSLETTER_CONFIG } from '~/config'
+import { getLocale, useTranslations } from '~/i18n'
+
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+const list = NEWSLETTER_CONFIG.lists[lang]
+---
+
+{NEWSLETTER_CONFIG.enabled && list && (
+  <form
+    method="post"
+    action={NEWSLETTER_CONFIG.action}
+    class="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/20 px-5 py-4"
+  >
+    <div>
+      <p class="flex items-center gap-3 font-medium">
+        <span class="icon-[ri--mail-line] size-5 text-primary" />
+        {t('newsletter.title')}
+      </p>
+      <p class="mt-1 text-sm text-foreground/70">{t('newsletter.description')}</p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <input type="hidden" name="l" value={list} />
+      <input
+        type="email"
+        name="email"
+        required
+        autocomplete="email"
+        aria-label={t('newsletter.placeholder')}
+        placeholder={t('newsletter.placeholder')}
+        class="min-w-0 grow rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+      />
+      <button
+        type="submit"
+        class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+      >
+        {t('newsletter.submit')}
+      </button>
+    </div>
+  </form>
+)}
