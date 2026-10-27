@@ -24,12 +24,11 @@ export function getTranslationKey(post: Post): string {
   return post.data.translationKey ?? getPostSlug(post)
 }
 
-// 文章按时间排序
+// Newest first by pubDate. updatedDate is only shown and sent as dateModified, so a
+// rewritten old post keeps its place in the list.
 export function postsSort(posts: Post[]) {
   return posts.slice().sort((a, b) => {
-    const dateA = a.data.updatedDate ?? a.data.pubDate
-    const dateB = b.data.updatedDate ?? b.data.pubDate
-    return new Date(dateB).getTime() - new Date(dateA).getTime()
+    return b.data.pubDate.getTime() - a.data.pubDate.getTime()
   })
 }
 
