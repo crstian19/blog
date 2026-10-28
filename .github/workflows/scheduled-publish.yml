@@ -1,0 +1,57 @@
+name: Publish scheduled posts
+
+# A post with a future pubDate is merged but left out of the build until that
+# day (see isPublished in src/lib/data.ts). Every morning, if any post goes
+# live today, rebuild the blog through its Cloudflare Pages deploy hook and
+# then refresh crstian.me, which lists the latest posts.
+on:
+  schedule:
+    - cron: '0 6 * * *' # 07:00 / 08:00 in Spain
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      due: ${{ steps.due.outputs.due }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find posts going live today
+        id: due
+        run: |
+          today=$(date -u +%F)
+          due=$(grep -rlE "^pubDate: ['\"]?$today" src/content/posts | xargs -r grep -L '^draft: true' || true)
+          if [ -z "$due" ]; then
+            echo "No posts scheduled for $today"
+            echo "due=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Going live on $today:"
+            echo "$due"
+            echo "due=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    needs: check
+    if: needs.check.outputs.due == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      HOOK: ${{ secrets.CF_PAGES_BLOG_DEPLOY_HOOK }}
+    steps:
+      - name: Trigger blog rebuild
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "CF_PAGES_BLOG_DEPLOY_HOOK not set" >&2
+            exit 1
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null
+          echo "Blog rebuild triggered"
+
+  refresh-home:
+    needs: deploy
+    uses: ./.github/workflows/refresh-home.yml
+    secrets: inherit

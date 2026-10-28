@@ -8,6 +8,27 @@ import robotsTxt from 'astro-robots-txt'
 import expressiveCode from 'astro-expressive-code'
 import { remarkPlugins, rehypePlugins } from './plugins'
 import { SITE } from './src/config'
+import { readdirSync, readFileSync } from 'node:fs'
+
+// lastmod for each post URL in the sitemap: updatedDate, else pubDate, read from the
+// frontmatter (astro:content isn't available here). Posts live in
+// src/content/posts/<locale>/<slug>/index.md(x) and are served at [/en]/post/<slug>/.
+function postLastmods(): Map<string, string> {
+  const lastmods = new Map<string, string>()
+  const root = './src/content/posts'
+  for (const locale of readdirSync(root)) {
+    for (const slug of readdirSync(`${root}/${locale}`)) {
+      const file = readdirSync(`${root}/${locale}/${slug}`).find((f) => /^index\.mdx?$/.test(f))
+      if (!file) continue
+      const text = readFileSync(`${root}/${locale}/${slug}/${file}`, 'utf8')
+      const date = (key: string) => text.match(new RegExp(`^${key}:\\s*['"]?(\\d{4}-\\d{2}-\\d{2})`, 'm'))?.[1]
+      const lastmod = date('updatedDate') ?? date('pubDate')
+      if (lastmod) lastmods.set(`${locale === 'es' ? '' : `/${locale}`}/post/${slug}/`, lastmod)
+    }
+  }
+  return lastmods
+}
+const lastmods = postLastmods()
 
 export default defineConfig({
   site: SITE.website,
@@ -76,7 +97,14 @@ export default defineConfig({
     expressiveCode(),
     mdx(),
     react(),
-    sitemap({ i18n: { defaultLocale: 'es', locales: { es: 'es-ES', en: 'en-US' } } }),
+    sitemap({
+      i18n: { defaultLocale: 'es', locales: { es: 'es-ES', en: 'en-US' } },
+      serialize(item) {
+        const lastmod = lastmods.get(new URL(item.url).pathname)
+        if (lastmod) item.lastmod = new Date(lastmod).toISOString()
+        return item
+      },
+    }),
     robotsTxt(),
   ],
 })

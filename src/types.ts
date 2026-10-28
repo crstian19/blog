@@ -1,3 +1,4 @@
+import type { Locale } from '~/i18n'
 import type { ImageMetadata } from 'astro'
 
 /**
@@ -207,6 +208,14 @@ export interface PhotoData {
   date: string
   photos: Photo[]
   travel?: string
+}
+
+export interface NewsletterConfig {
+  enabled: boolean
+  // listmonk's public subscription endpoint
+  action: string
+  // UUID of the public list for each language
+  lists: Record<Locale, string>
 }
 
 export interface AnalyticsConfig {

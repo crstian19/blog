@@ -24,19 +24,24 @@ export function getTranslationKey(post: Post): string {
   return post.data.translationKey ?? getPostSlug(post)
 }
 
-// 文章按时间排序
+// Newest first by pubDate. updatedDate is only shown and sent as dateModified, so a
+// rewritten old post keeps its place in the list.
 export function postsSort(posts: Post[]) {
   return posts.slice().sort((a, b) => {
-    const dateA = a.data.updatedDate ?? a.data.pubDate
-    const dateB = b.data.updatedDate ?? b.data.pubDate
-    return new Date(dateB).getTime() - new Date(dateA).getTime()
+    return b.data.pubDate.getTime() - a.data.pubDate.getTime()
   })
+}
+
+// A post is live once it is not a draft and its pubDate has arrived. A future
+// pubDate schedules it: the daily scheduled-publish workflow rebuilds the site
+// on that day. Drafts and scheduled posts still render in `astro dev`.
+export function isPublished(post: Post): boolean {
+  return !post.data.draft && post.data.pubDate.getTime() <= Date.now()
 }
 
 async function getPublishedPosts(): Promise<Post[]> {
   const allPosts = await getCollection('posts')
-  // Drafts only render in `astro dev`, so they can be previewed before publishing.
-  return allPosts.filter((post) => import.meta.env.DEV || !post.data.draft)
+  return allPosts.filter((post) => import.meta.env.DEV || isPublished(post))
 }
 
 // 获取所有非草稿文章，按时间排序

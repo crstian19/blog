@@ -1,107 +1,165 @@
 ---
-title: Loki como base de datos de logs
-description: En el mercado tenemos distintos proveedores de bases de datos para poder guardar y posteriormente consultar nuestros logs, pero en este caso vamos a hablar de…
+title: 'Loki para logs: modos de despliegue, etiquetas y retención'
+description: 'Cómo funciona Loki por dentro, qué modo de despliegue elegir según los GB al día, por qué la cardinalidad de etiquetas lo es todo y cómo configurar la retención en Loki 3.x.'
 pubDate: 2024-05-02
+updatedDate: 2026-10-27
+cover: assets/portada-loki.png
 tags:
 - Loki
 - grafana
 - logs
+- alloy
+- logql
 - kubernetes
 - monitoring
 - k8s
 ---
 
-En el mercado tenemos distintos proveedores de bases de datos para poder guardar y posteriormente consultar nuestros logs, pero en este caso vamos a hablar de Loki.
+Loki es la base de datos de logs de Grafana. Lo que la hace distinta de Elasticsearch u OpenSearch es que no indexa el contenido de los logs, solo las etiquetas (labels, al estilo de Prometheus). El texto de cada línea va comprimido en chunks a un object storage (S3, GCS, Azure, MinIO o disco local) y el índice se queda en una fracción de lo que ocupan los logs.
 
-## Loki
+Eso tiene un precio: si buscas por algo que no es una etiqueta, Loki tiene que descomprimir y recorrer todos los chunks del rango de tiempo que pidas. Casi todo lo que hay que saber para que Loki vaya bien sale de ahí, así que en este post vamos a ver como está montado por dentro, qué modo de despliegue elegir, qué etiquetas poner (y cuáles no) y como configurar la retención. Todo referido a Loki 3.x.
 
-Loki es una herramienta para la gestión de registros que se enfoca en indexar solo metadatos de los logs, como etiquetas al estilo de Prometheus. Los datos de los logs se almacenan comprimidos en bloques en almacenamientos como S3, GC o localmente. El índice de Loki se basa en estas etiquetas, dejando el mensaje original del log sin indexar. Sin embargo, esto implica que las consultas en LoqQL que filtran basándose en el contenido de los logs requieren cargar todos los bloques correspondientes.
+## Como funciona por dentro
 
-Características principales de Loki incluyen:
+![Componentes de Loki: distributor, ingester, querier, query frontend, ruler y compactor](assets/loki_architecture_components.svg)
 
-- Uso eficiente de memoria para indexar logs.
-- Multitenancy.
-- LogQL, un lenguaje de consulta similar a PromQL de Prometheus, que permite generar métricas a partir de datos de logs.
-- Escalabilidad, pudiendo operar tanto en un único binario como en microservicios.
+Hay dos caminos, el de escritura y el de lectura.
 
-Loki se destaca por dividir consultas en partes pequeñas y ejecutarlas en paralelo para agilizar la búsqueda en grandes volúmenes de datos. A diferencia de otros sistemas que requieren índices de texto completo grandes, el índice de Loki es significativamente más pequeño que el volumen de logs ingeridos, lo que mantiene bajos los costos estáticos y permite controlar el rendimiento de consultas mediante escalado horizontal.
+En la escritura, el agente que recoge los logs (hoy Grafana Alloy, ahora lo vemos) los manda al **distributor**. El distributor valida cada stream (etiquetas correctas, límites de tamaño y de rate) y lo reparte entre varios **ingesters** usando un hash ring. Los ingesters van acumulando las líneas de cada stream en chunks en memoria y, cuando un chunk se llena o pasa cierto tiempo, lo comprimen y lo suben al object storage. Como cada stream se escribe en varios ingesters (el `replication_factor`, normalmente 3), si se cae uno no se pierde lo que tenía en memoria.
 
-Las etiquetas en Loki definen un flujo y cualquier cambio en el valor de una etiqueta crea un nuevo flujo. La alta cardinalidad en las etiquetas (muchas etiquetas o etiquetas con amplia gama de valores) puede llevar a una gran cantidad de flujos diferentes, lo que puede ralentizar y encarecer el funcionamiento.
+En la lectura, la query en LogQL llega al **query frontend** (opcional), que la parte en trozos más pequeños por tiempo y los mete en una cola. Los **queriers** cogen esos trozos y los ejecutan en paralelo, preguntando a los ingesters por lo más reciente (lo que aún no se ha subido) y al object storage por lo demás. Al final deduplican las líneas que tengan el mismo timestamp, etiquetas y contenido, que salen repetidas por la replicación.
 
-### Modos
+Luego hay tres piezas más que conviene conocer:
 
-Loki opera en diferentes modos:
+- **Compactor:** compacta los ficheros de índice y es el que aplica la retención y los borrados. Si no lo activas, Loki no borra nada nunca.
+- **Ruler:** evalúa reglas de LogQL cada cierto tiempo, para alertas sobre logs o para generar métricas a partir de ellos (recording rules).
+- **Index gateway:** sirve el índice a los queriers para que no tenga que bajárselo cada uno. Solo tiene sentido en despliegues grandes.
 
-- Monolítico: todos los componentes en un solo binario.
-- Escalable simple: separación entre lectura y escritura.
-- Microservicios: distribución en varios servicios que pueden ser desplegados con Helm.
+## Qué modo de despliegue elegir
 
-:warning: El monolitico solo está pensado para desarrollo y testing, no para producción.
+Loki es un único binario y el flag `-target` decide qué componentes arranca cada proceso. Con eso hay tres formas de desplegarlo:
 
+| Modo | Qué es | Para cuánto volumen |
+|---|---|---|
+| Monolítico | Todo en un proceso (`-target=all`) | Hasta unos 20 GB al día según la documentación, y se puede poner en HA con varias réplicas |
+| Simple scalable (SSD) | Tres grupos: read, write y backend | Hasta cerca de 1 TB al día, pero está **deprecado** |
+| Microservicios | Cada componente por separado (`deploymentMode: Distributed` en el chart) | Lo que recomienda Grafana para producción a escala |
 
-### Componentes
+Lo del simple scalable es importante si vas a montar algo nuevo: la documentación de Loki 3.x dice que se va a quitar en Loki 4.0 y que no se podrá arrancar en ese modo. Lo que proponen para sustituirlo en la mayoría de casos es el monolítico en HA, que es el monolítico con varias réplicas, un object storage compartido y `memberlist` para que se repartan el ring.
 
-Los componentes de Loki incluyen:
+Yo lo haría así: para un homelab o un cluster pequeño, monolítico con una réplica y disco local o MinIO, que es lo que instala el chart de Helm por defecto (`deploymentMode: Monolithic`). Si necesitas que aguante la caída de un nodo, monolítico con 3 réplicas y object storage. Y solo cuando pases de las decenas de GB al día me plantearía microservicios, porque son unos 8 deployments distintos que escalar y vigilar.
 
-- Distribuidor: valida y preprocesa streams de logs, limita la tasa y los distribuye a los ingestores.
-- Ingestor: escribe datos de logs en almacenamiento a largo plazo y responde a consultas en memoria.
-- Query Frontend (opcional): optimiza las consultas, manejando grandes cargas y distribuyéndolas equitativamente.
-- Querier: maneja consultas usando LogQL, buscando datos tanto en los ingestores como en el almacenamiento a largo plazo.
+## Las etiquetas: la decisión que más importa
 
-![components_diagram](assets/loki_architecture_components.svg)
+Cada combinación única de valores de etiquetas es un **stream** distinto, con su propio índice y sus propios chunks. Si una etiqueta tiene muchos valores posibles (alta cardinalidad), multiplicas el número de streams, los chunks salen pequeños y medio vacíos, el índice crece y tanto la ingesta como las queries van peor. Es la causa más típica de un Loki lento o caro.
 
-### Arquitectura
+La regla práctica: etiqueta solo lo que tiene pocos valores y por lo que vas a filtrar siempre.
 
-#### Distribuidor (Distributor)
-El Distribuidor es responsable de manejar los streams de logs entrantes, siendo la primera parada en la ruta de escritura. Realiza la validación de cada stream para garantizar su corrección y que cumple con los límites establecidos. Los chunks válidos se dividen y envían a múltiples ingesters. Es un componente sin estado, lo que facilita su escalabilidad.
-- **Referencia**: [Distributor en Loki](https://grafana.com/docs/loki/latest/architecture/#distributor)
+```text
+Buenas:  cluster, namespace, app, job, env, level
+Malas:   pod, container_id, request_id, trace_id, user_id, IP, código HTTP
+```
 
-#### Ingester
-El Ingester escribe los datos de logs en backends de almacenamiento a largo plazo y devuelve datos de log para consultas en memoria. Maneja un ciclo de vida dentro del hash ring, con estados como `PENDING`, `JOINING`, `ACTIVE`, `LEAVING`, `UNHEALTHY`. Cada stream de log se acumula en "chunks" en memoria y luego se vacía al almacenamiento. Es clave en la replicación de datos para mitigar la pérdida de datos. En la ruta de escritura, almacenan temporalmente los logs en memoria y, periódicamente, los vuelcan a sistemas de almacenamiento como DynamoDB, S3, Cassandra, entre otros. Además, en la ruta de lectura, devuelven datos de log que están en su memoria
+`pod` es la que más se cuela, porque viene por defecto en muchas configuraciones. Cada despliegue genera nombres de pod nuevos y, con eso, streams nuevos. Para buscar un pod concreto te basta con un filtro de texto:
 
-- **Referencia**: [Ingester en Loki](https://grafana.com/docs/loki/latest/architecture/#ingester)
+```logql
+{namespace="default", app="immich"} |= "immich-server-abc123"
+```
 
-#### Frontend de Consulta (Query Frontend)
-El Frontend de Consulta es un servicio opcional que proporciona endpoints de API para queriers y acelera la ruta de lectura. Realiza ajustes de consulta y mantiene las consultas en una cola interna. Funciona en conjunto con los queriers, que actúan como trabajadores. Es un componente sin estado, y se recomienda ejecutar algunas réplicas para beneficiarse de la programación justa.
-- **Referencia**: [Query Frontend en Loki](https://grafana.com/docs/loki/latest/architecture/#query-frontend)
+Y si necesitas un campo de alta cardinalidad a mano (un `trace_id`, por ejemplo), Loki 3 tiene **structured metadata**: pares clave-valor que van pegados a cada línea pero no crean streams. Con Alloy se haría así:
 
-#### Querier
-El Querier maneja consultas usando el lenguaje de consulta LogQL, obteniendo logs tanto de los ingesters como del almacenamiento a largo plazo. Realiza una deduplicación interna de los datos que poseen el mismo timestamp, conjunto de etiquetas y mensaje de log. Juega un rol crucial en la ruta de lectura.
-- **Referencia**: [Querier en Loki](https://grafana.com/docs/loki/latest/architecture/#querier)
+```alloy
+loki.process "default" {
+  stage.json {
+    expressions = { "trace_id" = "" }
+  }
 
-#### **Index Gateway**
-Si se utiliza un almacenamiento indexado, como DynamoDB o Cassandra, para los índices de logs, el Index Gateway puede ser utilizado para descargar y consultar índices, reduciendo así la cantidad de consultas directas a estos servicios de almacenamiento indexado.
+  stage.structured_metadata {
+    values = { "trace_id" = "" }
+  }
 
-#### **Compactor**
-En configuraciones que utilizan almacenamiento indexado, el Compactor es responsable de compactar los índices y mejorar su eficiencia, tanto en términos de coste como de rendimiento de las consultas.
+  forward_to = [loki.write.local.receiver]
+}
+```
 
-#### **Ruler**
-Este servicio se utiliza para la evaluación de reglas y alertas. Permite a [[Loki]] evaluar expresiones LogQL en un horario regular y ejecutar acciones basadas en los resultados de estas evaluaciones.
+Luego lo filtras en la query como cualquier otro campo: `{app="api"} | trace_id="abc123"`.
 
-### Ruta de Escritura y Lectura
+## Mandar los logs: de Promtail a Alloy
 
-#### Ruta de Escritura (Write Path)
-La ruta de escritura en gestiona cómo los datos de log son recopilados, procesados y almacenados. Involucra los siguientes pasos y componentes:
+Si tienes Promtail, toca migrar. Grafana movió su código a Alloy, lo marcó como deprecado en Loki 3.x y llegó a fin de vida el 2 de marzo de 2026: ya no hay actualizaciones. Alloy trae un comando para convertir la configuración de Promtail a la suya (`alloy convert --source-format=promtail`), así que la migración suele ser rápida.
 
-1. **Recopilación de Logs**: Comienza con la recopilación de logs, generalmente a través de agentes como Promtail, Fluentd o Fluent Bit.
+Lo bueno de Alloy es que puedes filtrar antes de mandar nada, y eso es lo que más baja el volumen. En mi cluster de casa (mew) mandaba los logs de todos los pods a Grafana Cloud y medí unos 2,45 GB al día, con un límite de 50 GB al mes. Al ritmo que iba, me lo comía en menos de 3 semanas. Lo primero que hice fue tirar en Alloy las líneas que no aportan nada (health checks, peticiones que acaban en 2xx, logs de debug) y quedarme solo con una muestra de las apps más pesadas:
 
-2. **Distribuidor (Distributor)**: Los logs recopilados son enviados al distribuidor. El distribuidor valida los logs y los distribuye a los ingesters. La validación incluye verificar las etiquetas y los límites de tamaño y tiempo de los logs.
+```alloy
+loki.process "pod_logs" {
+  forward_to = [loki.write.grafana_cloud.receiver]
 
-3. **Ingester**: Los ingesters reciben y almacenan temporalmente los logs en memoria. Los logs se organizan en “chunks”.
+  // Health checks y endpoints de métricas
+  stage.match {
+    selector = "{job=~\".+\"} |~ \"GET /(health|healthz|ready|readyz|livez|metrics|ping)\""
+    action   = "drop"
+  }
 
-4. **Almacenamiento a Largo Plazo**: Los chunks comprimidos son almacenados en sistemas de almacenamiento a largo plazo.
+  // ArgoCD: me quedo solo con el 20 % de las líneas
+  stage.match {
+    selector = "{app=~\".*argocd.*\"}"
 
-#### Ruta de Lectura (Read Path)
-La ruta de lectura describe cómo se consultan y recuperan los datos de log almacenados. Los pasos y componentes involucrados son:
+    stage.sampling {
+      rate = 0.2
+    }
+  }
+}
+```
 
-1. **Consulta**: Las consultas son realizadas generalmente a través de Grafana utilizando el lenguaje de consulta LogQL.
+<!-- TODO Cristian: cuánto bajó el volumen al día después de aplicar los filtros (el plan estimaba ~0,35-0,50 GB/día, pero no tengo el dato medido). Y si llegaste a quitar `pod` de las etiquetas (en la config de mew/offline/alloy sigue puesta), dilo aquí. -->
 
-2. **Frontend de Consulta (Query Frontend)**: Si está en uso, el frontend de consulta recibe la consulta y realiza optimizaciones.
+Para saber qué filtrar primero, esta query te dice qué apps generan más líneas en las últimas 24 horas:
 
-3. **Querier**: El querier es el servicio que realmente ejecuta la consulta. Primero consulta los ingesters para obtener datos recientes y luego consulta el almacenamiento a largo plazo.
+```logql
+topk(10, sum by (app) (count_over_time({namespace=~".+"}[24h])))
+```
 
-4. **Resultados**: Los resultados de la consulta son devueltos al usuario.
+## Retención: el compactor
 
-Espero que te haya servido.
+Por defecto Loki no borra nada. Para que lo haga hay que activar la retención en el compactor y decir cuánto tiempo guardar en `limits_config`. Con el schema actual (TSDB y `v13`, que es el que necesitas para structured metadata) quedaría así:
 
-![chibimon](assets/chibimon.webp)
+```yaml
+schema_config:
+  configs:
+    - from: "2024-04-01"
+      store: tsdb
+      object_store: s3
+      schema: v13
+      index:
+        prefix: loki_index_
+        period: 24h
+
+limits_config:
+  retention_period: 672h # 28 días
+
+compactor:
+  working_directory: /loki/retention
+  retention_enabled: true
+  delete_request_store: s3
+```
+
+Dos cosas que conviene saber: el periodo del índice tiene que ser de 24h para que la retención funcione, y el compactor no borra al momento, sino que marca los chunks y los elimina pasado `retention_delete_delay` (2 horas por defecto). Si tu object storage ya tiene sus propias reglas de ciclo de vida (las lifecycle policies de S3, por ejemplo), pon un plazo mayor que el de Loki o borrarás chunks que el índice todavía cree que existen.
+
+## Unas queries de LogQL para empezar
+
+LogQL se parece a PromQL: primero eliges streams por etiquetas y luego filtras o parseas el contenido.
+
+```logql
+# Errores de una app, buscando en el texto
+{namespace="default", app="immich"} |= "error"
+
+# Parsear JSON y filtrar por un campo
+{app="api"} | json | status >= 500
+
+# Líneas de error por minuto y por app, como una métrica
+sum by (app) (count_over_time({namespace="default"} |= "error" [1m]))
+```
+
+La última convierte logs en una serie temporal que puedes poner al lado de las métricas de Prometheus en el mismo panel.
+
+<!-- TODO Cristian: hoy mew ya no usa Loki, los logs van con Vector a VictoriaLogs (mew/cluster/vector y mew/cluster/vlogs). Si quieres, añade un párrafo con por qué cambiaste. -->
