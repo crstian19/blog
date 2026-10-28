@@ -83,7 +83,7 @@ The monitor runs at 120 Hz and both apps scrolled at 60. I ruled things out one 
 
 Same WebKit release, a page of plain text, and the GTK 3 port stops at 60 while the GTK 4 port reaches 120.
 
-<!-- TODO screenshot: both MiniBrowsers with the fps counter. alt="Scrolling in WebKitGTK MiniBrowser: 59 fps on GTK 3 and 125 fps on GTK 4" -->
+![WebKitGTK MiniBrowser on a plain text page: 60 fps while scrolling on GTK 3 and 120 fps on GTK 4](assets/minibrowser-gtk3-vs-gtk4.webp)
 
 This is where it gets confusing, because Linux has two [WebKitGTK](https://webkitgtk.org/) APIs:
 
@@ -128,7 +128,7 @@ I wrote a script (`just profile-scroll`) that starts the app on a copy of the li
 
 A warning if you use sysprof: the capture stores the environment of whoever launches it, with all your variables, tokens and keys included. My first two captures are never leaving my PC, and the script now starts it with a minimal environment.
 
-<!-- TODO screenshot: sysprof with RenderingUpdate marks while scrolling. alt="sysprof showing WebKitGTK per-frame marks while scrolling Herakleo" -->
+![sysprof showing WebKitGTK per-frame marks (RenderingUpdate, PaintTile, UpdateTiles) over a quarter of a second of scrolling in Herakleo](assets/sysprof-scroll.webp)
 
 ### First culprit: hover transitions
 
