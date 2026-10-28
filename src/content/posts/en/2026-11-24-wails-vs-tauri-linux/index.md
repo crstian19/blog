@@ -6,11 +6,9 @@ cover: assets/portada-herakleo.png
 tags: ['wails', 'tauri', 'webkitgtk', 'linux', 'go', 'rust', 'svelte', 'performance']
 ---
 
-<!-- TODO before publishing: check whether Tauri/wry has a GTK 4 backend yet. If it does, half of this post changes. -->
-
 I wanted to build my first desktop app and couldn't choose between two frameworks: [Tauri 2](https://tauri.app/) (Rust) and [Wails](https://wails.io/) (Go). Both work the same way, a native backend plus a web UI inside the system WebView, without shipping a whole Chromium like Electron. Since I couldn't decide, I built it with both.
 
-The app is Herakleo, an IPTV desktop player for Linux. You give it M3U playlists or Xtream Codes accounts, it shows the channels in a grid, and each channel opens in [mpv](https://mpv.io/). Both versions share the same Svelte 5 frontend, so only the backend changes, which let me compare Wails vs Tauri on a real app instead of a hello world.
+The app is Herakleo, an IPTV desktop player for Linux, Windows and macOS (the comparison is Linux only). You give it M3U playlists or Xtream Codes accounts, it shows the channels in a grid, and each channel opens in [mpv](https://mpv.io/). Both versions shared the same Svelte 5 frontend, so only the backend changed, which let me compare Wails vs Tauri on a real app instead of a hello world. The Tauri version is gone from the repo now: I removed it after v0.1.0 and it lives on in the git history.
 
 I went with Wails, now on Wails v3 and GTK 4. What decided it wasn't Go versus Rust. It was the web engine both frameworks use on Linux, which no comparison on paper had mentioned.
 
@@ -94,12 +92,12 @@ This is where it gets confusing, because Linux has two [WebKitGTK](https://webki
 | `webkit2gtk-4.1` | GTK 3 | Tauri 2, Wails v2 |
 | `webkitgtk-6.0` | GTK 4 | Wails v3, GNOME Web |
 
-Tauri 2.12 runs on [wry](https://github.com/tauri-apps/wry) 0.57, which only has a GTK 3 backend. Wails v2 also links `webkit2gtk-4.1`. Wails v3, stable since 26 October, builds against GTK 4 and `webkitgtk-6.0` by default (a `gtk3` build tag switches back). [gap: check right before publishing whether wry has a GTK 4 backend yet]
+Tauri 2.12 runs on [wry](https://github.com/tauri-apps/wry) 0.57, which only has a GTK 3 backend. Wails v2 also links `webkit2gtk-4.1`. Wails v3, stable since 26 October, builds against GTK 4 and `webkitgtk-6.0` by default (a `gtk3` build tag switches back). As of late October the move to GTK 4 still hasn't landed: there's an [open PR in wry](https://github.com/tauri-apps/wry/pull/1767) and Tauri has it planned [for 3.0](https://github.com/tauri-apps/tauri/issues/14684).
 
 So I moved the Go backend from Wails v2.17 to v3.0.0. It took a while (`main`, the service, the dialogs and the JS adapter), and scrolling went from 17 to 8–9 ms per frame, about 120 fps. To check it links what it should:
 
 ```bash
-ldd wails/build/bin/herakleo-wails | grep -E 'webkit|gtk'   # webkitgtk-6.0, gtk-4
+ldd wails/build/bin/herakleo | grep -E 'webkit|gtk'   # webkitgtk-6.0, gtk-4
 ```
 
 With Tauri there's no way to do this on Linux today.
@@ -126,7 +124,7 @@ My benchmark missed it because it scrolled the grid from code, with no mouse ove
 
 ### Measuring with a real wheel: ydotool and sysprof
 
-I wrote a script (`just profile-scroll wails`) that starts the app on a copy of the library, puts the cursor over the grid and sends real wheel events with [ydotool](https://github.com/ReimuNotMoe/ydotool). The app records frame times only while scrolling, and with `--sysprof` it also captures the WebKit and GTK marks for each frame with [sysprof](https://gitlab.gnome.org/GNOME/sysprof).
+I wrote a script (`just profile-scroll`) that starts the app on a copy of the library, puts the cursor over the grid and sends real wheel events with [ydotool](https://github.com/ReimuNotMoe/ydotool). The app records frame times only while scrolling, and with `--sysprof` it also captures the WebKit and GTK marks for each frame with [sysprof](https://gitlab.gnome.org/GNOME/sysprof).
 
 A warning if you use sysprof: the capture stores the environment of whoever launches it, with all your variables, tokens and keys included. My first two captures are never leaving my PC, and the script now starts it with a minimal environment.
 
@@ -188,7 +186,6 @@ Two more paint changes don't move the median but cut the spikes, to about 13 slo
 
 Last, I added two settings for slower machines: pagination by default (pages of 60 channels) instead of infinite scroll, and a visual effects switch. On the long scroll, effects on runs at 16 ms (60 fps) and effects off at 9–10 ms (~110 fps). On a normal scroll or a 60 Hz screen it makes no difference.
 
-[gap: my friend hasn't confirmed yet whether the virtualised grid feels smooth for him]
 
 ![Herakleo appearance settings: pages or infinite scroll, and the visual effects switch](./assets/ajustes-apariencia.png)
 
@@ -229,11 +226,14 @@ Not everything was a difference. The LLM made the same mistakes in both language
 
 For my first desktop app I'm sticking with Wails v3. On raw backend performance Rust wins, but the difference you can see comes from the web engine. Wails v3 uses the GTK 4 WebKitGTK and scrolls at 120 fps, while Tauri is still on the GTK 3 one and stays at 60. Add builds in under a second instead of a minute, and for me it isn't close.
 
+A bonus I wasn't looking for: the same Go code builds for Windows and macOS, and CI ships 8 packages on every release (Arch, deb, rpm, Flatpak, a Windows installer and a universal `.dmg` for Mac).
+
 I'd pick Tauri if I needed mobile, the smallest possible binary or its permissions system. Or once wry moves to GTK 4, and then I'll run the comparison again.
 
 If you want to look at it:
 
-- Herakleo source code, GPL-3.0-or-later: [github.com/crstian19/herakleo](https://github.com/crstian19/herakleo) [gap: the repo is still private, confirm it's public before publishing]
+- Herakleo source code, GPL-3.0-or-later: [github.com/crstian19/herakleo](https://github.com/crstian19/herakleo)
+- Install it: `paru -S herakleo-bin` on Arch, or your system's package from the [releases](https://github.com/crstian19/herakleo/releases/latest)
 - Wails: [wails.io](https://wails.io/)
 - Tauri: [tauri.app](https://tauri.app/) and its WebView layer, [wry](https://github.com/tauri-apps/wry)
 - WebKitGTK: [webkitgtk.org](https://webkitgtk.org/)
