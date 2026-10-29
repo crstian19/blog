@@ -1,7 +1,7 @@
 ---
 import RainbowButton from '~/components/base/RainbowButton.astro'
 import { NEWSLETTER_CONFIG } from '~/config'
-import { getLocale, useTranslations } from '~/i18n'
+import { getLocale, localizePath, useTranslations } from '~/i18n'
 
 const lang = getLocale(Astro.url)
 const t = useTranslations(lang)
@@ -57,7 +57,13 @@ const messages = {
         <span data-label>{t('newsletter.submit')}</span>
       </RainbowButton>
     </div>
-    <p class="text-xs text-foreground/60">{t('newsletter.privacy')}</p>
+    <p class="text-xs text-foreground/60">
+      {t('newsletter.privacy')}{' '}
+      {t('newsletter.rss')}{' '}
+      <a href={localizePath(lang, '/index.xml')} class="inline-flex items-center gap-0.5 text-primary underline-offset-4 hover:underline">
+        <span class="icon-[material-symbols--rss-feed] size-3.5"></span>{t('newsletter.rssLink')}
+      </a>
+    </p>
     <p data-status aria-live="polite" class="text-sm empty:hidden"></p>
     {/* interaction-only keeps the widget invisible unless Cloudflare needs a visible challenge */}
     <div
