@@ -4,13 +4,33 @@ import { getLocale, useTranslations } from '~/i18n'
 
 const lang = getLocale(Astro.url)
 const t = useTranslations(lang)
-const list = NEWSLETTER_CONFIG.lists[lang]
+
+// Browser <-> backend contract. The same form works against the Pages Function
+// (functions/api/newsletter.ts) and the Go service at https://newsletter.crstian.me/api/subscribe;
+// only NEWSLETTER_CONFIG.endpoint changes.
+//   Request:  POST, JSON { "email": string, "lang": "es" | "en", "turnstileToken": string }
+//   Response: 200 { "ok": true }
+//             4xx/5xx { "ok": false, "error": "invalid_email" | "captcha_failed"
+//                                            | "already_subscribed" | "rate_limited" | "server_error" }
+// The Pages Function never returns "rate_limited"; the Go service does (429, 5 per minute per IP).
+// "already_subscribed" is shown as a friendly message, not as an error.
+const messages = {
+  success: t('newsletter.success'),
+  already_subscribed: t('newsletter.already'),
+  invalid_email: t('newsletter.error.invalid'),
+  captcha_failed: t('newsletter.error.captcha'),
+  rate_limited: t('newsletter.error.rateLimited'),
+  server_error: t('newsletter.error'),
+}
 ---
 
-{NEWSLETTER_CONFIG.enabled && list && (
+{NEWSLETTER_CONFIG.enabled && (
   <form
-    method="post"
-    action={NEWSLETTER_CONFIG.action}
+    data-newsletter
+    data-endpoint={NEWSLETTER_CONFIG.endpoint}
+    data-lang={lang}
+    data-messages={JSON.stringify(messages)}
+    data-sending={t('newsletter.sending')}
     class="flex flex-col gap-3 rounded-xl border border-border/60 bg-muted/20 px-5 py-4"
   >
     <div>
@@ -21,22 +41,74 @@ const list = NEWSLETTER_CONFIG.lists[lang]
       <p class="mt-1 text-sm text-foreground/70">{t('newsletter.description')}</p>
     </div>
     <div class="flex flex-wrap gap-2">
-      <input type="hidden" name="l" value={list} />
+      <label for="newsletter-email" class="sr-only">{t('newsletter.label')}</label>
       <input
+        id="newsletter-email"
         type="email"
         name="email"
         required
         autocomplete="email"
-        aria-label={t('newsletter.placeholder')}
         placeholder={t('newsletter.placeholder')}
         class="min-w-0 grow rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
       />
       <button
         type="submit"
-        class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
+        class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
       >
         {t('newsletter.submit')}
       </button>
     </div>
+    <p class="text-xs text-foreground/60">{t('newsletter.privacy')}</p>
+    <p data-status aria-live="polite" class="text-sm empty:hidden"></p>
+    {/* interaction-only keeps the widget invisible unless Cloudflare needs a visible challenge */}
+    <div
+      class="cf-turnstile"
+      data-sitekey={NEWSLETTER_CONFIG.turnstileSiteKey}
+      data-appearance="interaction-only"
+      data-theme="auto"
+    >
+    </div>
+    <script is:inline src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </form>
 )}
+
+<script>
+  type Messages = Record<string, string>
+
+  const bind = (form: HTMLFormElement) => {
+    const status = form.querySelector<HTMLElement>('[data-status]')!
+    const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!
+    const input = form.querySelector<HTMLInputElement>('input[type=email]')!
+    const messages: Messages = JSON.parse(form.dataset.messages ?? '{}')
+    const label = button.textContent
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const token = new FormData(form).get('cf-turnstile-response')
+      button.disabled = true
+      button.textContent = form.dataset.sending ?? label
+      let key = 'server_error'
+      try {
+        const res = await fetch(form.dataset.endpoint!, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: input.value.trim(), lang: form.dataset.lang, turnstileToken: token ?? '' }),
+        })
+        const data = await res.json().catch(() => ({}))
+        key = data.ok ? 'success' : (data.error ?? 'server_error')
+      } catch {
+        // network error: keep the generic message
+      }
+      const good = key === 'success' || key === 'already_subscribed'
+      status.textContent = messages[key] ?? messages.server_error
+      status.className = `text-sm ${good ? 'text-primary' : 'text-red-600 dark:text-red-400'}`
+      if (good) form.reset()
+      // A Turnstile token is single use, so ask for a fresh one after every attempt.
+      ;(window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset()
+      button.textContent = label
+      button.disabled = false
+    })
+  }
+
+  document.querySelectorAll<HTMLFormElement>('form[data-newsletter]').forEach(bind)
+</script>

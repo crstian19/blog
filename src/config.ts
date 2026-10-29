@@ -213,12 +213,16 @@ export const COMMENT_CONFIG: CommentConfig = {
 }
 
 // Newsletter on listmonk in the mew cluster (mew-yamls: mew/apps/listmonk). The form posts
-// straight to listmonk, which sends the double opt-in email, so it stays off until listmonk
-// has SMTP. The list UUIDs come from listmonk's Lists page (one public list per language).
+// JSON to `endpoint`, which is the Pages Function in functions/api/newsletter.ts or the Go
+// service at https://newsletter.crstian.me/api/subscribe; the backend picks the list.
+// Turnstile widget "newsletter-signup" (Managed, hostname blog.crstian.me). The site key is public.
+const TURNSTILE_SITE_KEY = '0x4AAAAAAFq6d86KHwdUgBvt'
+
 export const NEWSLETTER_CONFIG: NewsletterConfig = {
-  enabled: false,
-  action: 'https://newsletter.crstian.me/subscription/form',
-  lists: { es: '', en: '' },
+  enabled: true,
+  endpoint: '/api/newsletter',
+  // Cloudflare's always-pass test key in `astro dev`, so the form works without a real widget.
+  turnstileSiteKey: import.meta.env.DEV ? '1x00000000000000000000AA' : TURNSTILE_SITE_KEY,
 }
 
 export const ANALYTICS_CONFIG: AnalyticsConfig = {
