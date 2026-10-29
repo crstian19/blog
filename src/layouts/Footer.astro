@@ -21,6 +21,11 @@ const yearDisplay = currentYear > START_YEAR ? `${START_YEAR}–${currentYear}` 
         {FOOTER_LINKS.map((link) => (
           <FooterLink href={localizePath(lang, link.url)}>{t(link.key)}</FooterLink>
         ))}
+        {/* Spelled out here because the header only shows the icon, and the footer is where
+            people who use a feed reader look for it. */}
+        <FooterLink href={localizePath(lang, '/index.xml')} class="inline-flex items-center gap-1">
+          <span class="icon-[material-symbols--rss-feed] size-4"></span>{t('nav.rss')}
+        </FooterLink>
       </div>
       <div class="text-sm text-muted-foreground px-6 sm:px-8 py-4">
         <div class="items-center flex flex-wrap gap-4 font-medium">
