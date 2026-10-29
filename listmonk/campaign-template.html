@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<title>{{ .Campaign.Subject }}</title>
+<style>
+  /* Light is the baseline (inline styles below); dark only where supported. */
+  body { margin: 0; padding: 0; -webkit-text-size-adjust: 100%; }
+  a { color: #653de9; text-underline-offset: 3px; }
+  .post h1, .post h2, .post h3, .post h4 {
+    font-family: Lexend, 'Segoe UI', Helvetica, Arial, sans-serif;
+    font-weight: 500; color: #141327; line-height: 1.3; margin: 1.6em 0 0.5em;
+  }
+  .post h1 { font-size: 24px; margin-top: 0; }
+  .post h2 { font-size: 20px; }
+  .post h3 { font-size: 17px; }
+  .post p, .post li { margin: 0 0 1em; }
+  .post ul, .post ol { padding-left: 1.4em; margin: 0 0 1em; }
+  .post img { max-width: 100%; height: auto; border-radius: 4px; border: 1px solid #dfe0ef; }
+  .post blockquote { margin: 1em 0; padding: 0 0 0 14px; border-left: 3px solid #653de9; color: #5b5b74; }
+  .post hr { border: 0; border-top: 1px solid #dfe0ef; margin: 1.8em 0; }
+  .post code { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.9em; background: #ededf8; border-radius: 4px; padding: 1px 5px; }
+  .post pre { font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.5; background: #ededf8; border: 1px solid #dfe0ef; border-radius: 4px; padding: 12px 14px; overflow-x: auto; margin: 0 0 1em; }
+  .post pre code { background: none; padding: 0; }
+  .post .btn { display: inline-block; background: #653de9; color: #ffffff !important; text-decoration: none; padding: 9px 16px; border-radius: 8px; font-size: 14px; line-height: 20px; font-weight: 500; }
+  .post .btn:hover { opacity: 0.9; }
+  @media only screen and (max-width: 620px) {
+    .outer { padding: 12px 8px !important; }
+    .card { padding: 22px 18px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    body, .bg { background-color: #000000 !important; color: #ededf6 !important; }
+    .card { background-color: #000000 !important; border-color: #1d1c34 !important; }
+    .muted, .muted a { color: #a2a2b7 !important; }
+    .rule { border-color: #1d1c34 !important; }
+    .brand, .post a { color: #9b8eff !important; }
+    .post, .post p, .post li, .post strong { color: #ededf6 !important; }
+    .post h1, .post h2, .post h3, .post h4 { color: #ededf6 !important; }
+    .post code, .post pre { background-color: #0c0b1a !important; border-color: #1d1c34 !important; }
+    .post img { border-color: #1d1c34 !important; }
+    .post blockquote { border-left-color: #9b8eff !important; color: #a2a2b7 !important; }
+    .post hr { border-top-color: #1d1c34 !important; }
+    .post .btn { background-color: #9b8eff !important; color: #050410 !important; }
+  }
+</style>
+</head>
+<body class="bg" style="margin:0;padding:0;background-color:#fcfcff;color:#141327;font-family:Geist,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;">
+<table role="presentation" class="bg" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fcfcff;">
+  <tr>
+    <td class="outer" align="center" style="padding:32px 16px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+
+        <!-- Header -->
+        <tr>
+          <td class="rule" align="center" style="padding:0 4px 18px;border-bottom:1px solid #dfe0ef;text-align:center;">
+            <!-- PNG, not SVG: Gmail and Outlook don't render SVG. 192px source shown at 64px for retina. -->
+            <a href="https://blog.crstian.me" style="text-decoration:none;">
+              <img src="https://blog.crstian.me/favicon.png" width="64" height="64" alt="" style="display:block;margin:0 auto 10px;width:64px;height:64px;border:0;outline:none;" />
+            </a>
+            <a href="https://blog.crstian.me" class="brand" style="font-family:Lexend,'Segoe UI',Helvetica,Arial,sans-serif;font-size:20px;font-weight:500;color:#653de9;text-decoration:none;">Crstian's Blog</a>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td class="card" style="padding:28px 4px 8px;background-color:#fcfcff;">
+            <div class="post" style="font-family:Geist,'Segoe UI',Helvetica,Arial,sans-serif;font-size:16px;line-height:1.65;color:#141327;">
+              {{ template "content" . }}
+            </div>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td class="rule muted" style="padding:22px 4px 0;border-top:1px solid #dfe0ef;font-family:Geist,'Segoe UI',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#5b5b74;">
+            Recibes esto porque te suscribiste a <a href="https://blog.crstian.me" style="color:#5b5b74;">blog.crstian.me</a>.
+            <span style="color:#5b5b74;">/ You get this because you subscribed to the blog.</span><br>
+            <a href="{{ UnsubscribeURL }}" style="color:#5b5b74;">Cancelar suscripci&oacute;n / Unsubscribe</a>
+            &nbsp;&middot;&nbsp;
+            <a href="{{ MessageURL }}" style="color:#5b5b74;">Ver en el navegador / View in browser</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{{ TrackView }}
+</body>
+</html>

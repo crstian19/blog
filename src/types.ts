@@ -212,10 +212,10 @@ export interface PhotoData {
 
 export interface NewsletterConfig {
   enabled: boolean
-  // listmonk's public subscription endpoint
-  action: string
-  // UUID of the public list for each language
-  lists: Record<Locale, string>
+  // URL the form POSTs JSON to (see the contract in NewsletterForm.astro)
+  endpoint: string
+  // Cloudflare Turnstile site key (public)
+  turnstileSiteKey: string
 }
 
 export interface AnalyticsConfig {

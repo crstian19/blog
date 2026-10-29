@@ -22,3 +22,10 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# wrangler local secrets
+.dev.vars
+.wrangler/
+
+# Local renders of the listmonk templates
+listmonk/preview/
