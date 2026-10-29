@@ -44,6 +44,7 @@ export const FOOTER_LINKS: Link[] = [
   { key: 'nav.projects', url: '/projects/' },
   { key: 'nav.tags', url: '/tags/' },
   ...PHOTOS_LINK,
+  { key: 'nav.newsletter', url: '/newsletter/' },
   { key: 'nav.support', url: '/support/' },
 ]
 

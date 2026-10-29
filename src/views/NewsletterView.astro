@@ -1,0 +1,54 @@
+---
+import Layout from '~/layouts/Layout.astro'
+import PageTitle from '~/components/base/PageTitle.astro'
+import NewsletterForm from '~/components/posts/base/NewsletterForm.astro'
+import List from '~/components/posts/card/List.astro'
+import { POSTS_CONFIG } from '~/config'
+import { getLocale, localizePath, useTranslations } from '~/i18n'
+import { getNumPosts } from '~/lib/data'
+
+// A page to share when someone asks how to follow the blog: the same form as under each post,
+// what they will get, and the latest posts as a sample. The page's language picks the list.
+const lang = getLocale(Astro.url)
+const t = useTranslations(lang)
+const title = t('newsletterPage.title')
+const posts = await getNumPosts(lang, 3)
+const otherLang = lang === 'es' ? 'en' : 'es'
+const points = [
+  { icon: 'icon-[ri--mail-line]', text: t('newsletterPage.point.oneEmail') },
+  { icon: 'icon-[ri--translate-2]', text: t('newsletterPage.point.language') },
+  { icon: 'icon-[ri--server-line]', text: t('newsletterPage.point.selfHosted') },
+  { icon: 'icon-[ri--logout-box-r-line]', text: t('newsletterPage.point.unsubscribe') },
+]
+---
+
+<Layout {title} description={t('newsletterPage.description')}>
+  <div class="relative z-[1] py-8 pb-10">
+    <div class="px-6 sm:px-8">
+      <PageTitle {title} introduce={t('newsletterPage.introduce')} />
+    </div>
+    <div class="px-6 sm:px-8 mt-6 fade-up">
+      <NewsletterForm />
+    </div>
+    <ul class="px-6 sm:px-8 mt-8 grid gap-3 text-muted-foreground">
+      {points.map((point) => (
+        <li class="flex items-start gap-3">
+          <span class={`${point.icon} size-5 mt-0.5 shrink-0 text-primary`} />
+          <span>{point.text}</span>
+        </li>
+      ))}
+    </ul>
+    <p class="px-6 sm:px-8 mt-4 text-sm text-muted-foreground/80">
+      {t('newsletterPage.otherLanguage')}{' '}
+      <a href={localizePath(otherLang, '/newsletter/')} class="text-primary underline-offset-4 hover:underline">
+        {t('newsletterPage.otherLanguageLink')}
+      </a>
+    </p>
+    {posts.length > 0 && (
+      <div class="mt-10">
+        <p class="px-6 sm:px-8 mb-2 font-medium">{t('newsletterPage.sample')}</p>
+        <List {posts} type={POSTS_CONFIG.homePageConfig.type} coverLayout={POSTS_CONFIG.homePageConfig?.coverLayout} />
+      </div>
+    )}
+  </div>
+</Layout>
