@@ -90,6 +90,20 @@ function cleanHtmlForRSS(htmlContent: string): string {
   return cleaned
 }
 
+// MDX bodies carry ESM imports and JSX (the <video> with {video}, interactive components) that the
+// plain markdown processor below would print as text. Drop the imports and swap each JSX block
+// for a link to the post, since a feed reader can't run it anyway.
+const MDX_ESM = /^(?:import|export)\s[^\n]*$/gm
+const MDX_JSX_BLOCK = /^<([A-Za-z][\w.]*)(?=[\s/>])[\s\S]*?(?:\/>|<\/\1\s*>)[ \t]*$/gm
+function stripMdxForFeed(body: string, postUrl: string, locale: Locale): string {
+  const note = useTranslations(locale)('feed.interactive')
+  return body
+    .replace(MDX_ESM, '')
+    .replace(MDX_JSX_BLOCK, (block, tag: string) =>
+      /^[A-Z]/.test(tag) || block.includes('{') ? `[${note}](${postUrl})` : block
+    )
+}
+
 // 处理图片路径，将相对路径转换为 Astro 优化后的路径
 async function processImagePaths(htmlContent: string, siteUrl: string, postId: string): Promise<string> {
   const imgRegex = /<img([^>]+)src=['"]([^'"]+)['"]([^>]*)>/gi
@@ -153,7 +167,7 @@ async function addCoverImage(post: CollectionEntry<'posts'>, siteUrl: string): P
 }
 
 // 共享的文章处理逻辑
-async function processPostsForFeed({ posts, siteUrl }: RSSConfig) {
+async function processPostsForFeed({ posts, siteUrl }: RSSConfig, locale: Locale) {
   // 创建与项目相同配置的 markdown 处理器
   const processor = await createMarkdownProcessor({
     remarkPlugins,
@@ -170,7 +184,8 @@ async function processPostsForFeed({ posts, siteUrl }: RSSConfig) {
 
       try {
         // 使用 Astro 的 markdown 处理器
-        const result = await processor.render(post.body)
+        const body = post.filePath?.endsWith('.mdx') ? stripMdxForFeed(post.body, `${siteUrl}${getPostUrl(post)}`, locale) : post.body
+        const result = await processor.render(body)
 
         // 净化 HTML 内容
         const rawHtml = removeInvalidXmlChars(stripAnsi(result.code))
@@ -213,7 +228,7 @@ export async function generateRSS20(locale: Locale): Promise<string> {
   const selfUrl = `${siteUrl}${localizePath(locale, '/index.xml')}`
   const lastBuildDate = new Date().toISOString()
 
-  const processedPosts = await processPostsForFeed(config)
+  const processedPosts = await processPostsForFeed(config, locale)
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/rss/rss-styles.xsl"?>
@@ -256,7 +271,7 @@ export async function generateAtom10(locale: Locale): Promise<string> {
   const selfUrl = `${siteUrl}${localizePath(locale, '/atom.xml')}`
   const lastBuildDate = new Date().toISOString()
 
-  const processedPosts = await processPostsForFeed(config)
+  const processedPosts = await processPostsForFeed(config, locale)
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <?xml-stylesheet type="text/xsl" href="/rss/atom-styles.xsl"?>
