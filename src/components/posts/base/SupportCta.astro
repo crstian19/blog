@@ -1,4 +1,5 @@
 ---
+import ShineButton from '~/components/base/ShineButton.astro'
 import { getLocale, localizePath, useTranslations, type TranslationKey } from '~/i18n'
 
 interface Props {
@@ -15,11 +16,8 @@ const t = useTranslations(lang)
     <span class="icon-[ri--heart-3-fill] size-5 text-primary" />
     {t(question)}
   </span>
-  <a
-    href={localizePath(lang, '/support/')}
-    class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90"
-  >
-    <span class="icon-[ri--cup-line] size-4" />
+  <ShineButton href={localizePath(lang, '/support/')}>
+    <span class="icon-[simple-icons--kofi] size-4"></span>
     {t('support.postLink')}
-  </a>
+  </ShineButton>
 </div>

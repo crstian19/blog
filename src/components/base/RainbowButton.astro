@@ -1,0 +1,117 @@
+---
+// Rainbow Button from Magic UI (magicui.design, MIT), ported to plain CSS: an animated
+// rainbow border with a blurred rainbow glow underneath. Dark fill on light, light on dark.
+import type { HTMLAttributes } from 'astro/types'
+
+type Props = HTMLAttributes<'button'> & HTMLAttributes<'a'> & { href?: string }
+
+const { href, type = 'button', class: className, ...rest } = Astro.props
+const Tag = href ? 'a' : 'button'
+---
+
+<Tag href={href} type={href ? undefined : type} class:list={['rainbow', className]} {...rest}>
+  <slot />
+</Tag>
+
+<style>
+  .rainbow {
+    --c1: oklch(66.2% 0.225 25.9);
+    --c2: oklch(60.4% 0.26 302);
+    --c3: oklch(69.6% 0.165 251);
+    --c4: oklch(80.2% 0.134 225);
+    --c5: oklch(90.7% 0.231 133);
+    --colors: linear-gradient(90deg, var(--c1), var(--c5), var(--c3), var(--c4), var(--c2));
+    --fill: #121213;
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    height: 2.25rem;
+    border: 0.125rem solid transparent;
+    border-radius: 9999px;
+    padding: 0 1.1rem;
+    white-space: nowrap;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #fff;
+    /* Tailwind 4 no longer gives <button> a pointer cursor; links get it from the browser. */
+    cursor: pointer;
+    /* The fill covers the padding box; the rainbow only shows through the transparent border. */
+    background:
+      linear-gradient(var(--fill), var(--fill)) padding-box,
+      linear-gradient(var(--fill) 50%, rgb(from var(--fill) r g b / 0.6) 80%, rgb(from var(--fill) r g b / 0)) border-box,
+      var(--colors) border-box;
+    background-size: 200%;
+    animation: rainbow 2s infinite linear;
+    transition: transform 0.2s ease-out;
+  }
+  .rainbow::before {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: 50%;
+    z-index: 0;
+    width: 60%;
+    height: 20%;
+    transform: translateX(-50%);
+    background: var(--colors);
+    background-size: 200%;
+    filter: blur(0.75rem);
+    animation: rainbow 2s infinite linear;
+  }
+  /* Hover: the button lifts, the rainbow glow spreads and speeds up, and the leading icon
+     flies off like a sent letter. */
+  .rainbow::before {
+    transition:
+      width 0.3s ease-out,
+      height 0.3s ease-out,
+      filter 0.3s ease-out;
+  }
+  .rainbow > :global(span:first-child) {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .rainbow:hover,
+  .rainbow:focus-visible {
+    transform: translateY(-2px);
+    animation-duration: 1s;
+  }
+  .rainbow:hover::before,
+  .rainbow:focus-visible::before {
+    width: 95%;
+    height: 40%;
+    filter: blur(1rem);
+    animation-duration: 1s;
+  }
+  .rainbow:hover > :global(span:first-child),
+  .rainbow:focus-visible > :global(span:first-child) {
+    transform: translate(3px, -3px) rotate(-12deg);
+  }
+  .rainbow:active {
+    transform: translateY(1px);
+  }
+  .rainbow:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  :global(.dark) .rainbow {
+    --fill: #fff;
+    color: #121213;
+  }
+
+  @keyframes rainbow {
+    0% {
+      background-position: 0%;
+    }
+    100% {
+      background-position: 200%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .rainbow,
+    .rainbow::before {
+      animation: none;
+    }
+  }
+</style>

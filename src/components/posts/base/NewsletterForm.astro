@@ -1,4 +1,5 @@
 ---
+import RainbowButton from '~/components/base/RainbowButton.astro'
 import { NEWSLETTER_CONFIG } from '~/config'
 import { getLocale, useTranslations } from '~/i18n'
 
@@ -49,14 +50,12 @@ const messages = {
         required
         autocomplete="email"
         placeholder={t('newsletter.placeholder')}
-        class="min-w-0 grow rounded-lg border border-border/60 bg-background px-3 py-2 text-sm"
+        class="min-w-0 grow rounded-full border border-border/60 bg-background px-4 py-2 text-sm"
       />
-      <button
-        type="submit"
-        class="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:opacity-90 disabled:opacity-60"
-      >
-        {t('newsletter.submit')}
-      </button>
+      <RainbowButton type="submit">
+        <span class="icon-[ri--mail-send-line] size-4" />
+        <span data-label>{t('newsletter.submit')}</span>
+      </RainbowButton>
     </div>
     <p class="text-xs text-foreground/60">{t('newsletter.privacy')}</p>
     <p data-status aria-live="polite" class="text-sm empty:hidden"></p>
@@ -80,13 +79,14 @@ const messages = {
     const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!
     const input = form.querySelector<HTMLInputElement>('input[type=email]')!
     const messages: Messages = JSON.parse(form.dataset.messages ?? '{}')
-    const label = button.textContent
+    const labelEl = button.querySelector<HTMLElement>('[data-label]')!
+    const label = labelEl.textContent
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
       const token = new FormData(form).get('cf-turnstile-response')
       button.disabled = true
-      button.textContent = form.dataset.sending ?? label
+      labelEl.textContent = form.dataset.sending ?? label
       let key = 'server_error'
       try {
         const res = await fetch(form.dataset.endpoint!, {
@@ -105,7 +105,7 @@ const messages = {
       if (good) form.reset()
       // A Turnstile token is single use, so ask for a fresh one after every attempt.
       ;(window as unknown as { turnstile?: { reset: () => void } }).turnstile?.reset()
-      button.textContent = label
+      labelEl.textContent = label
       button.disabled = false
     })
   }
