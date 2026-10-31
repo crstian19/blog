@@ -93,6 +93,11 @@ export const rehypePlugins = [
     {
       target: '_blank',
       rel: ['noopener', 'noreferrer'],
+      // Umami counts clicks on external links as an "outbound" event with the URL.
+      properties: (el: Parameters<CreateProperties>[0]) => ({
+        'data-umami-event': 'outbound',
+        'data-umami-event-url': String(el.properties.href),
+      }),
     },
   ],
   rehypeKatex,
