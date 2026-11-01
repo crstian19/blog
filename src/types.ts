@@ -231,6 +231,7 @@ export interface AnalyticsConfig {
     enabled: boolean
     websiteId: string
     serverUrl: string
+    recorderUrl?: string
     domains?: string
   }
   google?: {
