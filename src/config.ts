@@ -234,6 +234,7 @@ export const ANALYTICS_CONFIG: AnalyticsConfig = {
     enabled: true,
     websiteId: '1df64f67-c72f-401c-89c0-02443ca455c6',
     serverUrl: 'https://umami.crstian.me/script.js',
+    recorderUrl: 'https://umami.crstian.me/recorder.js',
     domains: 'blog.crstian.me',
   },
   rybbit: {
